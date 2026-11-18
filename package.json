@@ -1,0 +1,15 @@
+{
+  "name": "butterflyfx-podcast-creator",
+  "version": "1.0.0",
+  "description": "ButterflyFx Podcast Creator: a local video podcast studio with a cue-driven script, a lens-centered teleprompter and a take director. A portfolio project.",
+  "main": "desktop/main.js",
+  "author": "Kenneth W. Bingham",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "42.4.1"
+  },
+  "license": "MIT"
+}

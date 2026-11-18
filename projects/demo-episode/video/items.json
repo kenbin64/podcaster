@@ -1,0 +1,550 @@
+[
+{
+"break": 3900
+},
+{
+"word": "Hi.",
+"k": 0
+},
+{
+"word": "Everything",
+"k": 1
+},
+{
+"word": "in",
+"k": 2
+},
+{
+"word": "this",
+"k": 3
+},
+{
+"word": "episode",
+"k": 4
+},
+{
+"word": "was",
+"k": 5
+},
+{
+"word": "placed",
+"k": 6
+},
+{
+"word": "by",
+"k": 7
+},
+{
+"word": "the",
+"k": 8
+},
+{
+"word": "script.",
+"k": 9
+},
+{
+"word": "Every",
+"k": 10
+},
+{
+"word": "picture",
+"k": 11
+},
+{
+"word": "appears",
+"k": 12
+},
+{
+"word": "right",
+"k": 13
+},
+{
+"word": "on",
+"k": 14
+},
+{
+"word": "the",
+"k": 15
+},
+{
+"word": "word",
+"k": 16
+},
+{
+"word": "that",
+"k": 17
+},
+{
+"word": "calls",
+"k": 18
+},
+{
+"word": "for",
+"k": 19
+},
+{
+"word": "it.",
+"k": 20
+},
+{
+"break": 1000
+},
+{
+"word": "A",
+"k": 21
+},
+{
+"word": "script",
+"k": 22
+},
+{
+"word": "has",
+"k": 23
+},
+{
+"word": "three",
+"k": 24
+},
+{
+"word": "jobs.",
+"k": 25
+},
+{
+"word": "Say",
+"k": 26
+},
+{
+"word": "it,",
+"k": 27
+},
+{
+"word": "show",
+"k": 28
+},
+{
+"word": "it,",
+"k": 29
+},
+{
+"word": "and",
+"k": 30
+},
+{
+"word": "direct",
+"k": 31
+},
+{
+"word": "it.",
+"k": 32
+},
+{
+"word": "Showing",
+"k": 33
+},
+{
+"word": "it",
+"k": 34
+},
+{
+"word": "is",
+"k": 35
+},
+{
+"word": "a",
+"k": 36
+},
+{
+"word": "cue",
+"k": 37
+},
+{
+"word": "in",
+"k": 38
+},
+{
+"word": "curly",
+"k": 39
+},
+{
+"word": "braces.",
+"k": 40
+},
+{
+"word": "Directing",
+"k": 41
+},
+{
+"word": "it",
+"k": 42
+},
+{
+"word": "is",
+"k": 43
+},
+{
+"word": "a",
+"k": 44
+},
+{
+"word": "note",
+"k": 45
+},
+{
+"word": "in",
+"k": 46
+},
+{
+"word": "square",
+"k": 47
+},
+{
+"word": "brackets.",
+"k": 48
+},
+{
+"break": 3900
+},
+{
+"word": "A",
+"k": 49
+},
+{
+"word": "cue",
+"k": 50
+},
+{
+"word": "names",
+"k": 51
+},
+{
+"word": "where",
+"k": 52
+},
+{
+"word": "it",
+"k": 53
+},
+{
+"word": "goes,",
+"k": 54
+},
+{
+"word": "which",
+"k": 55
+},
+{
+"word": "asset",
+"k": 56
+},
+{
+"word": "to",
+"k": 57
+},
+{
+"word": "show,",
+"k": 58
+},
+{
+"word": "and",
+"k": 59
+},
+{
+"word": "a",
+"k": 60
+},
+{
+"word": "short",
+"k": 61
+},
+{
+"word": "label.",
+"k": 62
+},
+{
+"word": "The",
+"k": 63
+},
+{
+"word": "one",
+"k": 64
+},
+{
+"word": "rule:",
+"k": 65
+},
+{
+"word": "put",
+"k": 66
+},
+{
+"word": "the",
+"k": 67
+},
+{
+"word": "cue",
+"k": 68
+},
+{
+"word": "right",
+"k": 69
+},
+{
+"word": "before",
+"k": 70
+},
+{
+"word": "its",
+"k": 71
+},
+{
+"word": "word,",
+"k": 72
+},
+{
+"word": "and",
+"k": 73
+},
+{
+"word": "the",
+"k": 74
+},
+{
+"word": "picture",
+"k": 75
+},
+{
+"word": "lands",
+"k": 76
+},
+{
+"word": "the",
+"k": 77
+},
+{
+"word": "moment",
+"k": 78
+},
+{
+"word": "you",
+"k": 79
+},
+{
+"word": "say",
+"k": 80
+},
+{
+"word": "it.",
+"k": 81
+},
+{
+"word": "The",
+"k": 82
+},
+{
+"word": "teleprompter",
+"k": 83
+},
+{
+"word": "keeps",
+"k": 84
+},
+{
+"word": "that",
+"k": 85
+},
+{
+"word": "word",
+"k": 86
+},
+{
+"word": "right",
+"k": 87
+},
+{
+"word": "under",
+"k": 88
+},
+{
+"word": "the",
+"k": 89
+},
+{
+"word": "camera,",
+"k": 90
+},
+{
+"word": "so",
+"k": 91
+},
+{
+"word": "your",
+"k": 92
+},
+{
+"word": "eyes",
+"k": 93
+},
+{
+"word": "stay",
+"k": 94
+},
+{
+"word": "on",
+"k": 95
+},
+{
+"word": "the",
+"k": 96
+},
+{
+"word": "lens.",
+"k": 97
+},
+{
+"break": 3900
+},
+{
+"word": "Before",
+"k": 98
+},
+{
+"word": "you",
+"k": 99
+},
+{
+"word": "record,",
+"k": 100
+},
+{
+"word": "check",
+"k": 101
+},
+{
+"word": "three",
+"k": 102
+},
+{
+"word": "things:",
+"k": 103
+},
+{
+"word": "every",
+"k": 104
+},
+{
+"word": "file",
+"k": 105
+},
+{
+"word": "name",
+"k": 106
+},
+{
+"word": "matches",
+"k": 107
+},
+{
+"word": "an",
+"k": 108
+},
+{
+"word": "asset,",
+"k": 109
+},
+{
+"word": "every",
+"k": 110
+},
+{
+"word": "cue",
+"k": 111
+},
+{
+"word": "sits",
+"k": 112
+},
+{
+"word": "before",
+"k": 113
+},
+{
+"word": "its",
+"k": 114
+},
+{
+"word": "word,",
+"k": 115
+},
+{
+"word": "and",
+"k": 116
+},
+{
+"word": "every",
+"k": 117
+},
+{
+"word": "section",
+"k": 118
+},
+{
+"word": "has",
+"k": 119
+},
+{
+"word": "a",
+"k": 120
+},
+{
+"word": "title.",
+"k": 121
+},
+{
+"word": "Done",
+"k": 122
+},
+{
+"word": "right,",
+"k": 123
+},
+{
+"word": "the",
+"k": 124
+},
+{
+"word": "episode",
+"k": 125
+},
+{
+"word": "is",
+"k": 126
+},
+{
+"word": "finished",
+"k": 127
+},
+{
+"word": "when",
+"k": 128
+},
+{
+"word": "you",
+"k": 129
+},
+{
+"word": "stop",
+"k": 130
+},
+{
+"word": "talking.",
+"k": 131
+},
+{
+"word": "No",
+"k": 132
+},
+{
+"word": "post-production.",
+"k": 133
+}
+]

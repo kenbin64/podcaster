@@ -1,0 +1,6 @@
+node_modules/
+recordings/
+exports/
+projects/*/video/node_modules/
+projects/*/video/*.webm
+*.log

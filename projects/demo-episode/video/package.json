@@ -1,0 +1,12 @@
+{
+  "name": "podcaster-demo-video",
+  "private": true,
+  "description": "Records the demo episode with the studio itself: narration timed word by word drives the cues; no host, no editing.",
+  "scripts": {
+    "record": "node record-demo.cjs puppeteer-core demo-episode.webm"
+  },
+  "devDependencies": {
+    "puppeteer-core": "25.15.0",
+    "fix-webm-duration": "1.0.6"
+  }
+}

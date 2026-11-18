@@ -1,0 +1,16 @@
+{section | Scripts that bring their own visuals | wipe}
+[to camera] Hi. Everything in this episode was placed by the script. {news | title.svg | Scripts with assets} Every picture appears right on the word that calls for it.
+{text ll | Write it once. It shows up on cue.} [pause 1]
+{cleartext} A script has three jobs. {full | three-parts.svg | Say it, show it, direct it} Say it, show it, and direct it.
+{clear} {text ll | Show it: a cue in curly braces} Showing it is a cue in curly braces.
+{cleartext} {text ll | Direct it: a note in square brackets} Directing it is a note in square brackets.
+{cleartext}
+{section | The cue | slide}
+{left | cue-anatomy.svg | Anatomy of a cue} A cue names {text ll | Where it goes} where it goes, {cleartext} {text ll | Which asset} which asset to show, {cleartext} {text ll | A short label} and a short label.
+{clear} {cleartext} {news | placement.svg | Cue before the word} {text ll | Cue before the word} The one rule: put the cue right before its word, and the picture lands the moment you say it.
+{cleartext} {fx | lightbulb} {emoji ur | 💡} {text ll | The current word sits under the camera} The teleprompter keeps that word right under the camera, so your eyes stay on the lens.
+{clear} {cleartext}
+{section | No post-production | pop}
+{news | checklist.svg | Before you record} Before you record, check three things: {text ll | 1. Every file name matches an asset} every file name matches an asset, {cleartext} {text ll | 2. Every cue sits right before its word} every cue sits before its word, {cleartext} {text ll | 3. Every section has a title} and every section has a title.
+{clear} {cleartext} [to camera] {fx | applause} {text ll | No post-production} Done right, the episode is finished when you stop talking. No post-production.
+{recap | Cues show it; brackets direct it; cue before the word}
