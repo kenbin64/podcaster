@@ -321,6 +321,13 @@
         </div>
         <audio id="voAudio" controls style="display:none;width:100%;margin-top:8px;"></audio>
         <div class="hint" id="voStatus"></div>
+        <h3 style="margin:14px 0 4px;">Characters</h3>
+        <div class="hint">For an episode played by animated characters. Put the cast at the top of the script, then start each line with a name:<br>
+          <code>{cast | Ken | host | en-AU-WilliamMultilingualNeural}</code> &nbsp; <code>Ken: [warm] G'day!</code> &nbsp; <code>Sam: &lt;sam-01.wav&gt;</code> (a real recording)<br>
+          Each line is saved in the episode's <code>voices</code> folder. A Piper voice (<code>.onnx</code>) stays on this machine; a neural voice name sends that line's text to Microsoft's Read Aloud service.</div>
+        <div class="btns" style="margin-top:6px;"><button id="castVoice" class="primary">🎭 Voice the cast</button></div>
+        <div class="hint" id="castStatus"></div>
+        <div id="castLines" style="display:grid;gap:4px;margin-top:6px;"></div>
       </div>
       <div class="panel purple" style="margin-top:12px;">
         <h2>AI image (local, free)</h2>
@@ -1900,6 +1907,7 @@
     // Type or paste a folder PATH and load it. In the desktop build the loopback server reads the folder
     // via Node (/readproject) and streams each asset by absolute path (/projectfile). In a plain browser
     // there is no filesystem, so it points you at the folder picker instead.
+    let episodeFolder = '';
     async function loadFromPath(dir) {
       if (!dir) { $('mediaStatus').textContent = 'Paste a folder path first, or use Open project folder.'; return; }
       let data;
@@ -1917,6 +1925,7 @@
         if (VID_RE.test(a.name)) { const v = document.createElement('video'); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.load(); mediaAssets[a.name] = v; nVid++; }
         else { const img = new Image(); img.src = url; mediaAssets[a.name] = img; nImg++; }
       });
+      episodeFolder = data.folder || dir;   // where "Voice the cast" saves the character voices
       const folderName = String(data.folder || dir).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dir;
       let report;
       if (data.script) {
@@ -1928,6 +1937,31 @@
     }
     $('loadPath').addEventListener('click', () => loadFromPath($('folderPath').value.trim()));
     $('folderPath').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); loadFromPath($('folderPath').value.trim()); } });
+
+    // Voice the cast: the desktop server voices every "Name: line" of the script into the episode's voices/
+    // folder and returns the manifest (voices/cast.json). Each line is listed with a player to check it.
+    let castManifest = null;
+    $('castVoice').addEventListener('click', async () => {
+      const say = (s) => { $('castStatus').textContent = s; };
+      if (!episodeFolder) { say('Load the episode folder first (Open / save), so the voices have somewhere to go.'); return; }
+      say('Voicing the cast…'); $('castLines').innerHTML = ''; $('castVoice').disabled = true;
+      try {
+        const r = await fetch('/voicecast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder: episodeFolder, script: $('script').value }) });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+        castManifest = j;
+        say(j.lines.length + ' line(s) voiced for ' + j.cast.map((p) => p.name).join(', ') + '. Saved in the voices folder.');
+        for (const line of j.lines) {
+          const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;align-items:center;';
+          const label = document.createElement('span'); label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          label.textContent = line.who + ': ' + (line.words ? line.text : '(recording / follows the sound) ' + line.text);
+          const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.style.height = '28px';
+          audio.src = '/projectfile?path=' + encodeURIComponent(line.audio);
+          row.append(label, audio); $('castLines').append(row);
+        }
+      } catch (e) { say('Could not voice the cast: ' + e.message); }
+      $('castVoice').disabled = false;
+    });
     // One-click episode loader: pulls the script + every asset for an episode and presets the recording title/slug.
     // Episodes for the quick loader. A relative folder is read from the app's own folder (desktop app).
     const EPISODES = [

@@ -9,6 +9,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const { voiceCast } = require('./voicecast');
 
 const ROOT = path.join(__dirname, '..');           // the app folder (studio.html, vendor/, assets/)
 const RECDIR = path.join(ROOT, 'recordings');      // recorded scenes land here: recordings/<episode>/scene-NN/take-M.webm
@@ -161,6 +162,20 @@ function requestHandler(req, res) {
     });
     return;
   }
+  if (req.method === 'POST' && rel === '/voicecast') {  // voice every character line of the script into <episode>/voices/
+    let body = ''; req.on('data', (c) => { body += c; if (body.length > 500000) req.destroy(); });
+    req.on('end', async () => {
+      let pj = {}; try { pj = JSON.parse(body || '{}'); } catch (e) {}
+      res.setHeader('Content-Type', 'application/json');
+      if (!pj.folder) { res.writeHead(400); return res.end(JSON.stringify({ error: 'Load the episode folder first, so the voices have somewhere to go.' })); }
+      try {
+        const folder = path.resolve(__dirname, '..', pj.folder);
+        const manifest = await voiceCast(folder, pj.script, { ttsDir: TTSDIR, piperBin: _piperBin() });
+        res.writeHead(200); res.end(JSON.stringify(manifest));
+      } catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
+    });
+    return;
+  }
   if (rel === '/imgstatus') {                           // is a local image model (Stable Diffusion / A1111 / Forge) up?
     return _sdReq('/sdapi/v1/sd-models', 'GET', null, res, (j) => ({ ok: Array.isArray(j), models: (Array.isArray(j) ? j.map((m) => m.model_name || m.title) : []) }));
   }
@@ -210,7 +225,7 @@ function requestHandler(req, res) {
   // load its graphics. Loopback-only server, and limited to media/text extensions.
   if (rel === '/projectfile') {
     const fp = path.normalize(u.searchParams.get('path') || '');
-    if (!MEDIA_RE.test(fp) && !/\.(txt|md|json)$/i.test(fp)) { res.writeHead(403); return res.end('forbidden'); }
+    if (!MEDIA_RE.test(fp) && !/\.(txt|md|json|wav|mp3|m4a|ogg|flac)$/i.test(fp)) { res.writeHead(403); return res.end('forbidden'); }
     return fs.readFile(fp, (err, buf) => {
       if (err) { res.writeHead(404); return res.end('not found'); }
       res.writeHead(200, { 'Content-Type': MIME[path.extname(fp).toLowerCase()] || 'application/octet-stream' });

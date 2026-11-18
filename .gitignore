@@ -7,3 +7,5 @@ projects/*/video/*.webm
 projects/*/video/__pycache__/
 puppet/*.webm
 puppet/demo/__pycache__/
+
+projects/*/voices/

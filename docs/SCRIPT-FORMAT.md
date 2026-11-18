@@ -70,3 +70,29 @@ Every note's text also appears as a gist line under the teleprompter, for you on
 ```
 
 The section card plays first. The chart appears on "Our", and the caption on "And". Then both clear.
+
+## Characters (an episode played by animated people)
+
+List the cast at the top, one line each: `{cast | name | look | voice}`. The order is their seat, left to right. Then start each spoken line with a name and a colon.
+
+```
+{cast | Brother | guest | en-NZ-MitchellNeural}
+{cast | Ken | host | en-AU-WilliamMultilingualNeural}
+{cast | Friend | friend | recorded}
+
+Ken: [warm] G'day! {text ll | Ken, Brother and a mate} Today I've got my brother and a mate at the desk.
+Brother: [excited] Good to be here! So what are we actually building?
+Friend: <recorded/friend.mp3> [curious]
+```
+
+- **look** is one of the drawn characters: `host`, `guest`, `friend` or `cohost`.
+- **voice** is any of these:
+  - A neural voice name: the line's text is sent to Microsoft's Read Aloud service, and comes back with each word's timing.
+  - A Piper voice file (`name.onnx` in `tts/voices`): stays on this machine.
+  - `recorded`: every line for that person is a recording.
+- **A recording** is written as `<file>`, relative to the episode folder. The mouth follows the sound, so no transcript is needed.
+- Cues and `[notes]` work inside a line exactly as above.
+
+In the studio, load the episode folder, then press **Voice the cast** (in Voiceover & narration). Each line is saved in the episode's `voices` folder, with a manifest at `voices/cast.json`. A line that has not changed is not voiced again. Neural voices need Python with `pip install edge-tts truststore`.
+
+A complete example is `projects/panel-episode`.

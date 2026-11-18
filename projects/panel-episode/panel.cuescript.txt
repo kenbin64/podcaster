@@ -1,0 +1,8 @@
+{cast | Brother | guest | en-NZ-MitchellNeural}
+{cast | Ken | host | en-AU-WilliamMultilingualNeural}
+{cast | Friend | friend | recorded}
+
+Ken: [warm] G'day! {text ll | Ken, Brother and a mate} Today I've got my brother and a mate at the desk.
+Brother: [excited] Good to be here! So what are we actually building?
+Friend: <recorded/friend.mp3> [curious]
+Ken: [to camera] Exactly. {text ll | Type it or record it} Type it, or record it yourself, and the mouth follows.
