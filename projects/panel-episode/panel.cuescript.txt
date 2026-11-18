@@ -2,7 +2,11 @@
 {cast | Ken | host | en-AU-WilliamMultilingualNeural}
 {cast | Friend | friend | recorded}
 
-Ken: [warm] G'day! {text ll | Ken, Brother and a mate} Today I've got my brother and a mate at the desk.
-Brother: [excited] Good to be here! So what are we actually building?
-Friend: <recorded/friend.mp3> [curious]
-Ken: [to camera] Exactly. {text ll | Type it or record it} Type it, or record it yourself, and the mouth follows.
+Ken: [warm] G'day! {text ll | A podcast panel, drawn in code} This whole panel is drawn in code. No camera, and no actors.
+Brother: [curious] So how does a character know what to do?
+Ken: [explain] You write a script. {text ll | Name: line} Each line starts with a name, and the studio voices it.
+Brother: [excited] And the mouth, the eyes, the hands? All of that just follows?
+Ken: Yep. {text ll | Words drive the mouth. Emphasis drives the hands.} The words drive the mouth, and emphasis drives the HANDS.
+Friend: <recorded/friend.mp3> [curious] {text ll | Played from an audio file: the mouth follows the sound}
+Brother: Hang on, that one came from an audio file?
+Ken: [to camera] Right. {text ll | Type a line, or record your own voice} It could be your own voice. {text ll | ButterflyFx Podcast Creator, for portfolio purposes} And there's no editing afterwards.

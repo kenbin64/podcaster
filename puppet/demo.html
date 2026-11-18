@@ -62,7 +62,7 @@ window.play = async (record = false) => {
   let last = t0;
   await new Promise((done) => { (function frame() {
     const now = audioCtx.currentTime, t = Math.max(0, now - t0);
-    render(t, Math.min(0.05, now - last)); last = now;
+    render(t, Math.min(0.05, Math.max(0, now - last))); last = Math.max(last, now);
     if (t < line.durationMs / 1000 + 0.8) requestAnimationFrame(frame); else done();
   })(); });
   if (!recorder) return null;

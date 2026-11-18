@@ -7,7 +7,8 @@ const puppeteer = require(path.join(MODS, 'puppeteer-core'));
 const PAGE = process.argv[3] || 'demo.html';
 const ROOT = __dirname, OUT = path.join(ROOT, process.argv[4] || 'talking-character.webm');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.mp3': 'audio/mpeg' };
-const server = http.createServer((q, r) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); }).listen(8907);
+// Serves the puppet folder; /abs?path=... serves an episode's voices (outside this folder) for ?manifest= pages.
+const server = http.createServer((q, r) => { const u = new URL(q.url, 'http://x'); const f = u.pathname === '/abs' ? path.normalize(u.searchParams.get('path')) : path.join(ROOT, decodeURIComponent(u.pathname)); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); }).listen(8907);
 (async () => {
   const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--autoplay-policy=no-user-gesture-required'] });
   const p = await b.newPage(); await p.setViewport({ width: 1280, height: 800 });

@@ -27,9 +27,13 @@ import { drawBody, drawHands, LOOKS, place } from './character.js';
 import { cameraAt, drawBack, drawDesk, drawFront } from './scene.js';
 import { analyseVoice } from './voice.js';
 
-const GAP_MS = 350, LEAD_MS = 400;
+const GAP_MS = 350, LEAD_MS = 400, CAPTION_MS = 5500;
 const canvas = document.getElementById('stage'), ctx = canvas.getContext('2d');
-const panel = await (await fetch('demo/panel.json')).json();
+// ?manifest=<path to an episode's voices/cast.json> plays what the studio's "Voice the cast" made; otherwise the demo.
+const manifest = new URLSearchParams(location.search).get('manifest');
+const panel = await (await fetch(manifest ? '/abs?path=' + encodeURIComponent(manifest) : 'demo/panel.json')).json();
+const audioUrl = (a) => (/^([a-z]:|\/)/i.test(a) ? '/abs?path=' + encodeURIComponent(a) : 'demo/' + a);
+const captions = [];   // {text pos | words} cues from the script, as lower-third captions
 const audioCtx = new AudioContext();
 
 // Seats spread evenly across the desk, sized so everyone fits.
@@ -42,7 +46,7 @@ const byName = Object.fromEntries(people.map((p) => [p.name, p]));
 const clips = [];
 let t = LEAD_MS;
 for (const line of panel.lines) {
-  const buffer = await audioCtx.decodeAudioData(await (await fetch('demo/' + line.audio)).arrayBuffer());
+  const buffer = await audioCtx.decodeAudioData(await (await fetch(audioUrl(line.audio))).arrayBuffer());
   const who = byName[line.who], start = t;
   let words = line.words;
   if (!words) {                                   // a recording: the sound gives the mouth and the beats
@@ -54,6 +58,12 @@ for (const line of panel.lines) {
   for (const note of line.notes) who.notes.push({ at: who.words.length + note.at, note: note.note });
   for (const w of words) who.words.push({ ...w, start: w.start + start, end: w.end + start });
   const end = start + buffer.duration * 1000;
+  for (const c of line.cues || []) {               // a caption appears as its word is spoken
+    const m = c.cue.match(/^\{\s*text\b[^|]*\|(.*)\}$/i);
+    if (!m) continue;
+    const w = words[c.at];
+    captions.push({ t: w ? w.start + start : start, text: m[1].trim() });
+  }
   for (const other of people) if (other !== who) other.listen.push({ start, end, dir: Math.sign(who.seat.x - other.seat.x) });
   clips.push({ buffer, start });
   t = end + GAP_MS;
@@ -71,6 +81,21 @@ function render(t, dt) {
   drawDesk(ctx, cam, false);
   people.forEach((p, i) => { ctx.save(); ctx.translate(cam.x, cam.y); place(ctx, p.seat); drawHands(ctx, poses[i], p.look); ctx.restore(); });
   drawFront(ctx, cam, seats, place);
+  drawCaption(t * 1000);
+}
+
+// The latest caption, for a few seconds, in a lower-third bar that slides and fades in.
+captions.sort((a, b) => a.t - b.t);
+function drawCaption(ms) {
+  let c = null; for (const x of captions) { if (x.t <= ms) c = x; else break; }
+  if (!c || ms - c.t > CAPTION_MS) return;
+  const age = ms - c.t, k = Math.min(1, age / 250) * Math.min(1, (CAPTION_MS - age) / 300);
+  ctx.save(); ctx.globalAlpha = k; ctx.font = '600 46px system-ui, Segoe UI, sans-serif';
+  const w = ctx.measureText(c.text).width + 80, x = 70 - (1 - k) * 40, y = 950;
+  ctx.fillStyle = 'rgba(8,10,16,0.82)'; ctx.beginPath(); ctx.roundRect(x, y, w, 82, 14); ctx.fill();
+  ctx.fillStyle = '#2dd4bf'; ctx.fillRect(x, y, 10, 82);
+  ctx.fillStyle = '#f2f5f8'; ctx.textBaseline = 'middle'; ctx.fillText(c.text, x + 44, y + 43);
+  ctx.restore();
 }
 
 // For checking: settle every rig at time t by stepping up to it, then draw.
@@ -91,7 +116,7 @@ window.play = async (record = false) => {
   let last = t0;
   await new Promise((done) => { (function frame() {
     const now = audioCtx.currentTime, t = Math.max(0, now - t0);
-    render(t, Math.min(0.05, now - last)); last = now;
+    render(t, Math.min(0.05, Math.max(0, now - last))); last = Math.max(last, now);
     if (t < totalMs / 1000) requestAnimationFrame(frame); else done();
   })(); });
   if (!recorder) return null;

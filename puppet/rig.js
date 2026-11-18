@@ -24,6 +24,9 @@ export function createRig() {
 
   // Moves pose toward target over dt seconds; t is the current time in seconds (for breathing and sway).
   function update(target, dt, t) {
+    // A step must be forward and short: a negative step makes the easing overshoot and blow up
+    // (it happened while waiting for the audio to start), and a long one would make things jump.
+    dt = Math.min(0.05, Math.max(0, dt));
     for (const [key, speed] of Object.entries(SPEEDS)) {
       const k = 1 - Math.exp(-speed * dt);
       pose[key] += (target[key] - pose[key]) * k;
