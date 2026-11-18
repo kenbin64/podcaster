@@ -1,0 +1,7 @@
+{
+  "name": "podcaster-walkthrough-video",
+  "private": true,
+  "description": "Records a narrated walkthrough of the studio being used: the real interface, with the teleprompter and assets in action.",
+  "scripts": { "record": "node record-walkthrough.cjs walkthrough.webm" },
+  "devDependencies": { "puppeteer-core": "25.15.0", "fix-webm-duration": "1.0.6" }
+}

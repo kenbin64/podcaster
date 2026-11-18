@@ -1,0 +1,5 @@
+{section | Scripts that bring their own visuals | wipe}
+[to camera] Everything you see in this episode is placed by the script. {news | title.svg | Scripts with assets} Every picture lands right on the word that calls for it.
+{text ll | Write it once. It shows up on cue.} A script has three jobs. {full | three-parts.svg | Say it, show it, direct it} Say it, show it, and direct it.
+{clear} {cleartext} {left | cue-anatomy.svg | Anatomy of a cue} A cue names {text ll | Where it goes} where it goes, {cleartext} {text ll | Which asset} which asset to show, {cleartext} {text ll | A short label} and a short label.
+{clear} {cleartext} {fx | lightbulb} {text ll | No post-production} Done right, the episode is finished when you stop talking.

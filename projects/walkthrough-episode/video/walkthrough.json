@@ -1,0 +1,23 @@
+{
+  "voice": "en-AU-WilliamMultilingualNeural",
+  "rate": "+0%",
+  "segments": [
+    { "say": "G'day. This is ButterflyFx Podcast Creator, a studio that turns a script into a finished episode. Let me show you how it works.", "do": "intro" },
+    { "gap": 400 },
+    { "say": "First, I open the episode folder.", "do": "openFiles" },
+    { "say": "The script and every picture it needs load together.", "do": "loadFolder" },
+    { "gap": 300 },
+    { "say": "Here's the script. The words in curly braces are cues, and each one fires on the word right after it.", "do": "showScript", "then": "selectCue", "thenAtWord": 7 },
+    { "gap": 300 },
+    { "say": "Now the look. I'll make my studio the backdrop.", "do": "openLook", "then": "setBackdrop", "thenAtWord": 4 },
+    { "gap": 300 },
+    { "say": "Then I just start talking. The teleprompter follows my voice, and keeps the current word right under the camera.", "do": "goStage" },
+    { "gap": 500 },
+    { "episode": "walkthrough-episode.cuescript.txt" },
+    { "gap": 700 },
+    { "say": "And that's the episode, recorded straight through. Save it as a video, and you're done. No post-production.", "do": "highlightSave" },
+    { "gap": 300 },
+    { "say": "ButterflyFx Podcast Creator. Free, and open source.", "do": "endCard" },
+    { "gap": 1500 }
+  ]
+}

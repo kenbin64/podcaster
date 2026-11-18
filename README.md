@@ -4,7 +4,7 @@ A video podcast studio that runs on your own computer. Write a script once, with
 
 This is a portfolio project, built to demonstrate my work.
 
-**Watch the demo:** [butterflyfx.us/work/podcaster.html](https://butterflyfx.us/work/podcaster.html), a 75-second episode made entirely by the studio, with no person on camera and no editing.
+**Watch the demo:** [butterflyfx.us/work/podcaster.html](https://butterflyfx.us/work/podcaster.html): a narrated walkthrough of the studio in use, and a 75-second episode it made on its own, with no person on camera and no editing.
 
 ## What it does
 
@@ -36,7 +36,7 @@ Optional, for AI writing: install [Ollama](https://ollama.com) and run `ollama p
 - [Script and cue reference](docs/SCRIPT-FORMAT.md): every cue and note the studio understands
 - [Writing scripts that bring their own visuals](docs/WRITING-SCRIPTS-WITH-ASSETS.md): how to write so the right picture lands on the right word
 - [Writing scripts with AI](docs/AI-SCRIPTS.md): the studio's local AI, or any chatbot
-- [How the demo video was made](docs/DEMO-VIDEO.md): a complete episode with no host and no editing
+- [How the demo videos were made](docs/DEMO-VIDEO.md): a narrated walkthrough, and a complete episode with no host and no editing
 
 ## Credit
 

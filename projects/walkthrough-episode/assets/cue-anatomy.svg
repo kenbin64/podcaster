@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1067" height="1000" viewBox="0 0 1067 1000">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1067" height="1000" fill="url(#g)"/><rect x="0" y="0" width="14" height="1000" fill="#2dd4bf"/>
+<text x="70" y="150" font-size="38" letter-spacing="5" fill="#7fe0c4" font-family="Segoe UI, Arial, sans-serif">ANATOMY OF A CUE</text>
+<text x="70" y="270" font-size="64" font-weight="800" fill="#ffffff" font-family="Consolas, 'Courier New', monospace">{news|chart.svg|Sales}</text>
+<text x="70" y="430" font-size="50" fill="#e6edf3" font-family="Consolas, 'Courier New', monospace">news: where it goes</text><text x="70" y="540" font-size="50" fill="#e6edf3" font-family="Consolas, 'Courier New', monospace">chart.svg: which asset</text><text x="70" y="650" font-size="50" fill="#e6edf3" font-family="Consolas, 'Courier New', monospace">Sales: a short label</text>
+</svg>
