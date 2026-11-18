@@ -5,13 +5,35 @@
 //   drawHands - forearms and hands, which rest on the desk or rise in front of it to gesture
 // A "look" sets the colors and the optional features, so one drawing makes many characters.
 
+// Look options: hairStyle 'swept' | 'short' | 'long' | 'bald'; top 'hoodie' | 'tee' | 'shirt'; beard = a color or false.
 export const HOST_LOOK = {
   skin: '#e8b48f', skinShade: '#c98f6c', lips: '#b5645a', hair: '#cfd2d6', hairShade: '#9aa0a8', brows: '#8c8f95',
   iris: '#5b3a22', shirt: '#22262d', shirtLight: '#30353e', frames: '#1a1a1a', stubble: 'rgba(90,80,72,0.22)',
-  glasses: true, headphones: true, stubbleOn: true,
+  glasses: true, headphones: true, stubbleOn: true, hairStyle: 'swept', top: 'hoodie', beard: false,
+};
+
+// Starting looks to pick from in a script's {cast} line. The guests are placeholders until the real people are described.
+export const LOOKS = {
+  host: HOST_LOOK,
+  guest: { ...HOST_LOOK, skin: '#e2a982', skinShade: '#c0876a', hair: '#6b4a32', hairShade: '#4f3524', brows: '#4f3524',
+    iris: '#3f5f7a', shirt: '#6e2a2a', shirtLight: '#8c3636', collar: '#4d1d1d', glasses: false, stubbleOn: false,
+    hairStyle: 'short', top: 'shirt', beard: '#5a3e2b' },
+  friend: { ...HOST_LOOK, skin: '#c68a64', skinShade: '#a56f4f', lips: '#8e4f45', hair: '#2a211c', hairShade: '#14100d',
+    brows: '#2a211c', iris: '#2b1d14', shirt: '#24506e', shirtLight: '#2f6488', headphones: true, stubbleOn: true,
+    stubble: 'rgba(40,30,25,0.3)', hairStyle: 'bald', top: 'tee' },
+  cohost: { ...HOST_LOOK, skin: '#f0c3a0', skinShade: '#d39f7e', lips: '#c0605f', hair: '#6a4130', hairShade: '#4a2c20',
+    brows: '#5a3726', iris: '#3c6b4f', shirt: '#1f6f6a', shirtLight: '#2a8a84', glasses: false, stubbleOn: false,
+    hairStyle: 'long', top: 'tee' },
 };
 
 const CX = 960, HEAD_Y = 392, SHOULDER_Y = 640;
+export const DESK_Y = 870;
+
+// Moves and sizes a character: spot.x is where its center goes on the stage, spot.s its size (1 = full size).
+// It scales around the desk edge, so every character stays seated at the same desk.
+export function place(ctx, spot) {
+  ctx.translate(spot.x, DESK_Y); ctx.scale(spot.s, spot.s); ctx.translate(-CX, -DESK_Y);
+}
 
 function ellipse(ctx, x, y, rx, ry, fill) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
 
@@ -27,11 +49,22 @@ function drawTorso(ctx, pose, look) {
   ctx.bezierCurveTo(CX + 250, sy - 12, CX + 150, sy - 18, CX + 72, 585);
   ctx.quadraticCurveTo(CX, 640, CX - 72, 585);
   ctx.fillStyle = g; ctx.fill();
-  // Hood collar and drawstrings.
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 16; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(CX - 95, 595); ctx.quadraticCurveTo(CX, 680, CX + 95, 595); ctx.stroke();
-  ctx.strokeStyle = '#d8dde4'; ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.moveTo(CX - 34, 650); ctx.lineTo(CX - 40, 760 - up * 0.3); ctx.moveTo(CX + 34, 650); ctx.lineTo(CX + 42, 755 - up * 0.3); ctx.stroke();
+  ctx.lineCap = 'round';
+  if (look.top === 'shirt') {          // collar points and buttons
+    ctx.fillStyle = look.collar || look.shirtLight;
+    ctx.beginPath(); ctx.moveTo(CX - 78, 588); ctx.lineTo(CX - 6, 668); ctx.lineTo(CX - 104, 648); ctx.closePath();
+    ctx.moveTo(CX + 78, 588); ctx.lineTo(CX + 6, 668); ctx.lineTo(CX + 104, 648); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    for (const y of [700, 760, 820]) { ctx.beginPath(); ctx.arc(CX, y - up * 0.3, 6, 0, Math.PI * 2); ctx.fill(); }
+  } else if (look.top === 'tee') {     // a plain round neckline
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(CX - 70, 590); ctx.quadraticCurveTo(CX, 655, CX + 70, 590); ctx.stroke();
+  } else {                             // hoodie: hood collar and drawstrings
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 16;
+    ctx.beginPath(); ctx.moveTo(CX - 95, 595); ctx.quadraticCurveTo(CX, 680, CX + 95, 595); ctx.stroke();
+    ctx.strokeStyle = '#d8dde4'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(CX - 34, 650); ctx.lineTo(CX - 40, 760 - up * 0.3); ctx.moveTo(CX + 34, 650); ctx.lineTo(CX + 42, 755 - up * 0.3); ctx.stroke();
+  }
   // Sleeve seams down each side, so the upper arms read against the body.
   ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.moveTo(CX - 280, sy + 70); ctx.quadraticCurveTo(CX - 250, sy + 160, CX - 255, 860);
@@ -92,8 +125,39 @@ function drawMouth(ctx, x, y, pose, look) {
   ctx.quadraticCurveTo(x, y + h + 4, x - w / 2, y + corner); ctx.closePath(); ctx.stroke();
 }
 
-function drawHair(ctx, look) {
+// Long hair falls behind the head and shoulders, so it is drawn before the face.
+function drawBackHair(ctx, look) {
+  if (look.hairStyle !== 'long') return;
   ctx.fillStyle = look.hair;
+  ctx.beginPath(); ctx.moveTo(-132, -60);
+  ctx.bezierCurveTo(-175, -215, 175, -215, 132, -60);
+  ctx.bezierCurveTo(150, 60, 168, 170, 128, 235);
+  ctx.lineTo(-128, 235);
+  ctx.bezierCurveTo(-168, 170, -150, 60, -132, -60);
+  ctx.fill();
+}
+
+function drawHair(ctx, look) {
+  const style = look.hairStyle || 'swept';
+  ctx.fillStyle = look.hair;
+  if (style === 'bald') {               // just the sides above the ears, and a shine on top
+    ctx.beginPath(); ctx.ellipse(-114, -30, 12, 34, 0.1, 0, Math.PI * 2); ctx.ellipse(114, -30, 12, 34, -0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.ellipse(-30, -95, 38, 14, -0.2, 0, Math.PI * 2); ctx.fill();
+    return;
+  }
+  if (style === 'short') {              // a close crop that follows the skull
+    ctx.beginPath(); ctx.moveTo(-121, -36);
+    ctx.bezierCurveTo(-132, -150, -50, -186, 10, -183);
+    ctx.bezierCurveTo(92, -182, 136, -140, 121, -36);
+    ctx.bezierCurveTo(106, -92, 62, -116, 0, -116);
+    ctx.bezierCurveTo(-62, -116, -106, -92, -121, -36);
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-116, -36, 12, 36, 0.1, 0, Math.PI * 2); ctx.ellipse(116, -36, 12, 36, -0.1, 0, Math.PI * 2); ctx.fill();
+    return;
+  }
+  if (style === 'long') {               // side curtains over the ears, in front of the face edge
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 128, -70); ctx.quadraticCurveTo(s * 140, 60, s * 124, 170); ctx.lineTo(s * 100, 150); ctx.quadraticCurveTo(s * 112, 40, s * 104, -60); ctx.fill(); }
+  }
   ctx.beginPath();
   ctx.moveTo(-122, -30);
   ctx.bezierCurveTo(-140, -150, -60, -205, 20, -200);
@@ -112,6 +176,7 @@ function drawHead(ctx, pose, look) {
   ctx.save();
   ctx.translate(CX + pose.headTurn * 6, HEAD_Y + pose.headNod - pose.breath * 1.5);
   ctx.rotate(pose.headTilt + pose.sway * 0.015);
+  drawBackHair(ctx, look);
   ellipse(ctx, -120 - pose.headTurn * 8, 12, 22, 34, look.skinShade);
   ellipse(ctx, 120 - pose.headTurn * 8, 12, 22, 34, look.skinShade);
   const g = ctx.createRadialGradient(-30, -40, 30, 0, 0, 160); g.addColorStop(0, look.skin); g.addColorStop(1, look.skinShade);
@@ -121,6 +186,14 @@ function drawHead(ctx, pose, look) {
   ctx.bezierCurveTo(-70, 150, -116, 70, -118, -20);
   ctx.fillStyle = g; ctx.fill();
   if (look.stubbleOn) { ctx.save(); ctx.clip(); ctx.fillStyle = look.stubble; ctx.beginPath(); ctx.ellipse(fx * 0.5, 105, 112, 70, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+  if (look.beard) {                     // a full beard along the jaw, with a moustache; the mouth is drawn on top of it
+    ctx.fillStyle = look.beard; ctx.beginPath(); ctx.moveTo(-117, 0);
+    ctx.bezierCurveTo(-114, 120, -62, 182, fx * 0.5, 184);
+    ctx.bezierCurveTo(62, 182, 114, 120, 117, 0);
+    ctx.bezierCurveTo(104, 52, 66, 58, fx * 1.1, 56);
+    ctx.bezierCurveTo(-66, 58, -104, 52, -117, 0);
+    ctx.fill();
+  }
   if (pose.smile > 0.3) { ctx.globalAlpha = (pose.smile - 0.3) * 0.35; ellipse(ctx, -68 + fx, 45, 22, 13, '#e0796b'); ellipse(ctx, 68 + fx, 45, 22, 13, '#e0796b'); ctx.globalAlpha = 1; }
   drawEye(ctx, -50 + fx, -12, pose, look);
   drawEye(ctx, 50 + fx, -12, pose, look);

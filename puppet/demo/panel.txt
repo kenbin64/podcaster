@@ -1,0 +1,12 @@
+# A three-person panel. {cast | Name | look | voice} sets each person; the order is their seat, left to right.
+# Looks: host, guest, friend, cohost (see LOOKS in character.js). A voice is a neural voice name.
+# A line is "Name: words" (spoken by that person's voice) or "Name: <file>" (a recording of the real person;
+# the mouth follows the sound). [notes] set expression and gestures, as in the studio.
+# friend.mp3 below is a STAND-IN made by make-standin.py until the real recording exists.
+{cast | Brother | guest | en-NZ-MitchellNeural}
+{cast | Ken | host | en-AU-WilliamMultilingualNeural}
+{cast | Friend | friend | recorded}
+Ken: [warm] G'day! Today I've got my brother and a mate at the desk.
+Brother: [excited] Good to be here! So what are we actually building?
+Friend: <recorded/friend.mp3> [curious]
+Ken: [to camera] Exactly. Type it, or record it yourself, and the mouth follows.

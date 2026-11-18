@@ -56,11 +56,13 @@ export function drawBack(ctx, cam, t) {
   ctx.restore();
 }
 
-export function drawDesk(ctx, cam) {
+// props: false leaves off the laptop and mixer (a panel of several people needs the desk clear for their hands).
+export function drawDesk(ctx, cam, props = true) {
   ctx.save(); ctx.translate(cam.x, cam.y * 1.0);
   const top = ctx.createLinearGradient(0, 860, 0, 1080); top.addColorStop(0, '#5a3c28'); top.addColorStop(1, '#2e1f16');
   ctx.fillStyle = top; ctx.beginPath(); ctx.moveTo(-80, 870); ctx.lineTo(2000, 870); ctx.lineTo(2000, 1100); ctx.lineTo(-80, 1100); ctx.fill();
   ctx.fillStyle = 'rgba(255,220,180,0.25)'; ctx.fillRect(-80, 866, 2080, 6);
+  if (!props) { ctx.restore(); return; }
   ctx.fillStyle = '#1b1d22'; ctx.beginPath(); ctx.moveTo(130, 1000); ctx.lineTo(470, 1000); ctx.lineTo(430, 880); ctx.lineTo(170, 880); ctx.fill();   // laptop
   ctx.fillStyle = '#0f2a3a'; ctx.fillRect(185, 892, 230, 92);
   ctx.strokeStyle = '#5fd8ff'; ctx.lineWidth = 3; ctx.beginPath();
@@ -72,14 +74,31 @@ export function drawDesk(ctx, cam) {
   ctx.restore();
 }
 
-export function drawFront(ctx, cam) {
-  ctx.save(); ctx.translate(cam.x * 1.15, cam.y * 1.15);
-  ctx.strokeStyle = '#191b20'; ctx.lineWidth = 16; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(1560, 180); ctx.lineTo(1400, 380); ctx.lineTo(1225, 520); ctx.stroke();   // boom arm
-  ctx.save(); ctx.translate(1205, 575); ctx.rotate(-0.35);
+function drawMicHead(ctx, x, y, angle) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
   const body = ctx.createLinearGradient(-40, 0, 40, 0); body.addColorStop(0, '#6b7079'); body.addColorStop(0.5, '#d9dde3'); body.addColorStop(1, '#5b6068');
   ctx.fillStyle = body; ctx.beginPath(); ctx.roundRect(-40, -75, 80, 150, 40); ctx.fill();
   ctx.strokeStyle = 'rgba(40,44,52,0.6)'; ctx.lineWidth = 2;
-  for (let y = -60; y <= 60; y += 10) { ctx.beginPath(); ctx.moveTo(-36, y); ctx.lineTo(36, y); ctx.stroke(); }
-  ctx.restore(); ctx.restore();
+  for (let yy = -60; yy <= 60; yy += 10) { ctx.beginPath(); ctx.moveTo(-36, yy); ctx.lineTo(36, yy); ctx.stroke(); }
+  ctx.restore();
+}
+
+// With no seats: the single host's microphone on a boom arm from above.
+// With seats (the same spots the characters are placed at): a desk-stand microphone beside each person's mouth.
+export function drawFront(ctx, cam, seats = null, place = null) {
+  ctx.save(); ctx.translate(cam.x * 1.15, cam.y * 1.15);
+  ctx.strokeStyle = '#191b20'; ctx.lineCap = 'round';
+  if (!seats) {
+    ctx.lineWidth = 16; ctx.beginPath(); ctx.moveTo(1560, 180); ctx.lineTo(1400, 380); ctx.lineTo(1225, 520); ctx.stroke();   // boom arm
+    drawMicHead(ctx, 1205, 575, -0.35);
+  } else {
+    for (const spot of seats) {
+      ctx.save(); place(ctx, spot);
+      ctx.fillStyle = '#191b20'; ctx.beginPath(); ctx.ellipse(1235, 905, 70, 16, 0, 0, Math.PI * 2); ctx.fill();   // base
+      ctx.lineWidth = 14; ctx.strokeStyle = '#191b20'; ctx.beginPath(); ctx.moveTo(1235, 900); ctx.lineTo(1225, 700); ctx.stroke();
+      drawMicHead(ctx, 1215, 640, -0.25);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
 }

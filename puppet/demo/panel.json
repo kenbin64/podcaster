@@ -1,0 +1,233 @@
+{
+ "cast": [
+  {
+   "name": "Brother",
+   "look": "guest",
+   "voice": "en-NZ-MitchellNeural"
+  },
+  {
+   "name": "Ken",
+   "look": "host",
+   "voice": "en-AU-WilliamMultilingualNeural"
+  },
+  {
+   "name": "Friend",
+   "look": "friend",
+   "voice": "recorded"
+  }
+ ],
+ "lines": [
+  {
+   "who": "Ken",
+   "audio": "panel-01.mp3",
+   "words": [
+    {
+     "text": "G'day!",
+     "start": 50,
+     "end": 688
+    },
+    {
+     "text": "Today",
+     "start": 1025,
+     "end": 1438
+    },
+    {
+     "text": "I've",
+     "start": 1438,
+     "end": 1600
+    },
+    {
+     "text": "got",
+     "start": 1600,
+     "end": 1762
+    },
+    {
+     "text": "my",
+     "start": 1762,
+     "end": 1888
+    },
+    {
+     "text": "brother",
+     "start": 1888,
+     "end": 2312
+    },
+    {
+     "text": "and",
+     "start": 2312,
+     "end": 2475
+    },
+    {
+     "text": "a",
+     "start": 2475,
+     "end": 2512
+    },
+    {
+     "text": "mate",
+     "start": 2512,
+     "end": 2825
+    },
+    {
+     "text": "at",
+     "start": 2825,
+     "end": 2925
+    },
+    {
+     "text": "the",
+     "start": 2925,
+     "end": 2988
+    },
+    {
+     "text": "desk.",
+     "start": 2988,
+     "end": 3475
+    }
+   ],
+   "notes": [
+    {
+     "at": 0,
+     "note": "warm"
+    }
+   ]
+  },
+  {
+   "who": "Brother",
+   "audio": "panel-02.mp3",
+   "words": [
+    {
+     "text": "Good",
+     "start": 168,
+     "end": 221
+    },
+    {
+     "text": "to",
+     "start": 300,
+     "end": 379
+    },
+    {
+     "text": "be",
+     "start": 392,
+     "end": 537
+    },
+    {
+     "text": "here!",
+     "start": 550,
+     "end": 932
+    },
+    {
+     "text": "So",
+     "start": 1895,
+     "end": 2026
+    },
+    {
+     "text": "what",
+     "start": 2092,
+     "end": 2276
+    },
+    {
+     "text": "are",
+     "start": 2289,
+     "end": 2342
+    },
+    {
+     "text": "we",
+     "start": 2355,
+     "end": 2539
+    },
+    {
+     "text": "actually",
+     "start": 2553,
+     "end": 2947
+    },
+    {
+     "text": "building?",
+     "start": 2961,
+     "end": 3526
+    }
+   ],
+   "notes": [
+    {
+     "at": 0,
+     "note": "excited"
+    }
+   ]
+  },
+  {
+   "who": "Friend",
+   "audio": "recorded/friend.mp3",
+   "words": null,
+   "notes": [
+    {
+     "at": 0,
+     "note": "curious"
+    }
+   ]
+  },
+  {
+   "who": "Ken",
+   "audio": "panel-04.mp3",
+   "words": [
+    {
+     "text": "Exactly.",
+     "start": 50,
+     "end": 888
+    },
+    {
+     "text": "Type",
+     "start": 1225,
+     "end": 1538
+    },
+    {
+     "text": "it,",
+     "start": 1538,
+     "end": 1762
+    },
+    {
+     "text": "or",
+     "start": 1988,
+     "end": 2100
+    },
+    {
+     "text": "record",
+     "start": 2100,
+     "end": 2488
+    },
+    {
+     "text": "it",
+     "start": 2488,
+     "end": 2562
+    },
+    {
+     "text": "yourself,",
+     "start": 2562,
+     "end": 3138
+    },
+    {
+     "text": "and",
+     "start": 3338,
+     "end": 3475
+    },
+    {
+     "text": "the",
+     "start": 3475,
+     "end": 3538
+    },
+    {
+     "text": "mouth",
+     "start": 3538,
+     "end": 3825
+    },
+    {
+     "text": "follows.",
+     "start": 3825,
+     "end": 4400
+    }
+   ],
+   "notes": [
+    {
+     "at": 0,
+     "note": "to camera"
+    }
+   ]
+  }
+ ]
+}

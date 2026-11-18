@@ -1,9 +1,11 @@
-// Records demo.html playing its line, with sound, to talking-character.webm.
-//   node record-demo.cjs <folder with puppeteer-core and fix-webm-duration in node_modules>
+// Records a puppet page playing, with sound, to a .webm file.
+//   node record-demo.cjs <folder with puppeteer-core and fix-webm-duration in node_modules> [page] [output]
+//   defaults: demo.html -> talking-character.webm;  e.g. panel.html talking-panel.webm
 const path = require('path'), http = require('http'), fs = require('fs');
 const MODS = path.resolve(process.argv[2] || '.', 'node_modules');
 const puppeteer = require(path.join(MODS, 'puppeteer-core'));
-const ROOT = __dirname, OUT = path.join(ROOT, 'talking-character.webm');
+const PAGE = process.argv[3] || 'demo.html';
+const ROOT = __dirname, OUT = path.join(ROOT, process.argv[4] || 'talking-character.webm');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.mp3': 'audio/mpeg' };
 const server = http.createServer((q, r) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); }).listen(8907);
 (async () => {
@@ -11,7 +13,7 @@ const server = http.createServer((q, r) => { const f = path.join(ROOT, decodeURI
   const p = await b.newPage(); await p.setViewport({ width: 1280, height: 800 });
   fs.writeFileSync(OUT, Buffer.alloc(0));
   await p.exposeFunction('saveChunk', (b64) => fs.appendFileSync(OUT, Buffer.from(b64, 'base64')));
-  await p.goto('http://127.0.0.1:8907/demo.html'); await p.waitForFunction(() => window.ready, { timeout: 30000 });
+  await p.goto('http://127.0.0.1:8907/' + PAGE); await p.waitForFunction(() => window.ready, { timeout: 30000 });
   await p.addScriptTag({ path: path.join(MODS, 'fix-webm-duration', 'fix-webm-duration.js') });
   const seconds = await p.evaluate(async () => {
     const r = await window.play(true);
