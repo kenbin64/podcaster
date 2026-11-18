@@ -5,3 +5,5 @@ projects/*/video/node_modules/
 projects/*/video/*.webm
 *.log
 projects/*/video/__pycache__/
+puppet/*.webm
+puppet/demo/__pycache__/

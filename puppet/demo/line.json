@@ -1,0 +1,269 @@
+{
+ "words": [
+  {
+   "text": "G'day,",
+   "start": 50,
+   "end": 625
+  },
+  {
+   "text": "and",
+   "start": 812,
+   "end": 1000
+  },
+  {
+   "text": "welcome",
+   "start": 1000,
+   "end": 1462
+  },
+  {
+   "text": "to",
+   "start": 1462,
+   "end": 1550
+  },
+  {
+   "text": "the",
+   "start": 1550,
+   "end": 1625
+  },
+  {
+   "text": "show!",
+   "start": 1625,
+   "end": 2100
+  },
+  {
+   "text": "I'm",
+   "start": 2438,
+   "end": 2725
+  },
+  {
+   "text": "a",
+   "start": 2725,
+   "end": 2775
+  },
+  {
+   "text": "character",
+   "start": 2775,
+   "end": 3200
+  },
+  {
+   "text": "drawn",
+   "start": 3200,
+   "end": 3600
+  },
+  {
+   "text": "entirely",
+   "start": 3600,
+   "end": 4238
+  },
+  {
+   "text": "in",
+   "start": 4238,
+   "end": 4325
+  },
+  {
+   "text": "code.",
+   "start": 4325,
+   "end": 4838
+  },
+  {
+   "text": "Every",
+   "start": 5175,
+   "end": 5500
+  },
+  {
+   "text": "blink,",
+   "start": 5500,
+   "end": 5950
+  },
+  {
+   "text": "every",
+   "start": 6200,
+   "end": 6462
+  },
+  {
+   "text": "gesture,",
+   "start": 6462,
+   "end": 7000
+  },
+  {
+   "text": "and",
+   "start": 7212,
+   "end": 7450
+  },
+  {
+   "text": "every",
+   "start": 7450,
+   "end": 7700
+  },
+  {
+   "text": "word",
+   "start": 7700,
+   "end": 7925
+  },
+  {
+   "text": "on",
+   "start": 7925,
+   "end": 8012
+  },
+  {
+   "text": "my",
+   "start": 8012,
+   "end": 8138
+  },
+  {
+   "text": "lips",
+   "start": 8138,
+   "end": 8500
+  },
+  {
+   "text": "is",
+   "start": 8500,
+   "end": 8675
+  },
+  {
+   "text": "driven",
+   "start": 8675,
+   "end": 9050
+  },
+  {
+   "text": "by",
+   "start": 9050,
+   "end": 9188
+  },
+  {
+   "text": "the",
+   "start": 9188,
+   "end": 9275
+  },
+  {
+   "text": "script.",
+   "start": 9275,
+   "end": 9762
+  },
+  {
+   "text": "Pretty",
+   "start": 10100,
+   "end": 10425
+  },
+  {
+   "text": "neat,",
+   "start": 10425,
+   "end": 10825
+  },
+  {
+   "text": "right?",
+   "start": 10975,
+   "end": 11425
+  },
+  {
+   "text": "And",
+   "start": 11762,
+   "end": 11962
+  },
+  {
+   "text": "the",
+   "start": 11962,
+   "end": 12025
+  },
+  {
+   "text": "best",
+   "start": 12025,
+   "end": 12275
+  },
+  {
+   "text": "part:",
+   "start": 12275,
+   "end": 12688
+  },
+  {
+   "text": "it",
+   "start": 12962,
+   "end": 13112
+  },
+  {
+   "text": "costs",
+   "start": 13112,
+   "end": 13538
+  },
+  {
+   "text": "NOTHING",
+   "start": 13538,
+   "end": 13900
+  },
+  {
+   "text": "to",
+   "start": 13900,
+   "end": 13975
+  },
+  {
+   "text": "make,",
+   "start": 13975,
+   "end": 14400
+  },
+  {
+   "text": "and",
+   "start": 14588,
+   "end": 14738
+  },
+  {
+   "text": "there's",
+   "start": 14738,
+   "end": 14950
+  },
+  {
+   "text": "no",
+   "start": 14950,
+   "end": 15162
+  },
+  {
+   "text": "time",
+   "start": 15162,
+   "end": 15438
+  },
+  {
+   "text": "limit.",
+   "start": 15438,
+   "end": 15838
+  },
+  {
+   "text": "So",
+   "start": 16175,
+   "end": 16450
+  },
+  {
+   "text": "let's",
+   "start": 16450,
+   "end": 16762
+  },
+  {
+   "text": "make",
+   "start": 16762,
+   "end": 16962
+  },
+  {
+   "text": "some",
+   "start": 16962,
+   "end": 17150
+  },
+  {
+   "text": "podcasts!",
+   "start": 17150,
+   "end": 17912
+  }
+ ],
+ "notes": [
+  {
+   "at": 0,
+   "note": "warm"
+  },
+  {
+   "at": 31,
+   "note": "firm"
+  },
+  {
+   "at": 45,
+   "note": "excited"
+  }
+ ],
+ "durationMs": 18512
+}

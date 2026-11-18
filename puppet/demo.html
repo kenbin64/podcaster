@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talking character demo</title>
+<style>
+  :root { --bg: #0b0d12; --ink: #e6edf3; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, Segoe UI, sans-serif; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; border-radius: 10px; background: #000; }
+  button { font: inherit; margin-top: 12px; padding: 8px 16px; border-radius: 8px; border: 0; background: #2dd4bf; color: #062a26; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <canvas id="stage" width="1920" height="1080"></canvas>
+  <button id="play" type="button">Play</button>
+</main>
+<script type="module">
+// Plays a character speaking demo/line.mp3. The director reads demo/line.json (each word's timing and the notes),
+// the rig eases the character toward each moment's pose, and the scene draws around it.
+import { direct } from './director.js';
+import { createRig } from './rig.js';
+import { drawBody, drawHands, HOST_LOOK } from './character.js';
+import { cameraAt, drawBack, drawDesk, drawFront } from './scene.js';
+
+const canvas = document.getElementById('stage'), ctx = canvas.getContext('2d');
+const line = await (await fetch('demo/line.json')).json();
+const targetsAt = direct(line.words, line.notes);
+const rig = createRig();
+
+// Draws the whole stage at time t (seconds), having moved dt seconds since the last frame.
+function render(t, dt) {
+  const pose = rig.update(targetsAt(t * 1000), dt, t), cam = cameraAt(t, pose);
+  ctx.clearRect(0, 0, 1920, 1080);
+  drawBack(ctx, cam, t);
+  ctx.save(); ctx.translate(cam.x * 0.75, cam.y * 0.75); drawBody(ctx, pose, HOST_LOOK); ctx.restore();
+  drawDesk(ctx, cam);
+  ctx.save(); ctx.translate(cam.x, cam.y); drawHands(ctx, pose, HOST_LOOK); ctx.restore();
+  drawFront(ctx, cam);
+  return pose;
+}
+
+// For checking: settle the rig at time t by stepping up to it, then draw.
+window.renderAt = (t) => { for (let s = Math.max(0, t - 1.5); s < t; s += 1 / 60) render(s, 1 / 60); return render(t, 1 / 60); };
+
+const audioCtx = new AudioContext();
+const buffer = await audioCtx.decodeAudioData(await (await fetch('demo/line.mp3')).arrayBuffer());
+
+// Plays the line from the start; resolves when it ends. With record set, also returns the recording.
+window.play = async (record = false) => {
+  const dest = audioCtx.createMediaStreamDestination(), src = audioCtx.createBufferSource();
+  src.buffer = buffer; src.connect(audioCtx.destination); src.connect(dest);
+  let recorder = null; const chunks = [];
+  if (record) {
+    const stream = canvas.captureStream(30); stream.addTrack(dest.stream.getAudioTracks()[0]);
+    recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 3000000, videoKeyFrameIntervalDuration: 2000 });
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); }; recorder.start(1000);
+  }
+  const t0 = audioCtx.currentTime + 0.1; src.start(t0);
+  let last = t0;
+  await new Promise((done) => { (function frame() {
+    const now = audioCtx.currentTime, t = Math.max(0, now - t0);
+    render(t, Math.min(0.05, now - last)); last = now;
+    if (t < line.durationMs / 1000 + 0.8) requestAnimationFrame(frame); else done();
+  })(); });
+  if (!recorder) return null;
+  recorder.stop(); await new Promise((r) => recorder.addEventListener('stop', r, { once: true }));
+  return { blob: new Blob(chunks, { type: 'video/webm' }), seconds: audioCtx.currentTime - t0 };
+};
+
+document.getElementById('play').addEventListener('click', async () => { await audioCtx.resume(); window.play(false); });
+window.renderAt(0.5);
+window.ready = true;
+</script>
+</body>
+</html>
