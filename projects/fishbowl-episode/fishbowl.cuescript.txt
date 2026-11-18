@@ -1,0 +1,18 @@
+{cast | Ken | ken | en-AU-WilliamMultilingualNeural}
+{cast | Petunia | petunia | en-AU-NatashaNeural}
+{cast | Captain Hand-Up | hero | en-US-ChristopherNeural}
+{cast | Marlin | marlin | en-NZ-MitchellNeural}
+
+Ken: [warm] G'day, and welcome to the show! I'm Ken, and today the desk is FULL.
+Petunia: [warm] {text ll | Petunia, our guest} Hi Ken. Has anyone ever told you that you have a lovely radio voice?
+Ken: [warm] Thanks, Petunia. That's very kind. [serious] Let's keep things professional, shall we?
+Petunia: [curious] Professional. Sure. For now.
+Ken: [warm] Also with us, the only hero who never saves anybody.
+Captain Hand-Up: [firm] {text ll | Captain Hand-Up: a hand up, never a handout} Correct! My power is helping people help THEMSELVES.
+Ken: [curious] And joining us from his fishbowl, our resident marlin.
+Marlin: [firm] {text ll | The Marlin. Do not mention the bowl.} It's an AQUARIUM. And I'm a BLACK marlin. Seven hundred kilos of pure ocean, thank you very much.
+Captain Hand-Up: [excited] Buddy, I could teach you to climb out of that bowl all by yourself!
+Marlin: [serious] I have no ARMS, Captain.
+Petunia: [warm] Ken, you handle the marlin so well.
+Ken: [warm] Thank you, Petunia. [serious] Moving right along. [to camera] We'll be right back.
+Marlin: [firm] Don't hold your breath. Actually, do. Welcome to my world.

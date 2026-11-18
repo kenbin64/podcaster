@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D podcast stage</title>
+<!-- three.js and the models come from the Chomp game folder (served at /js and /models by record-3d.cjs). -->
+<script type="importmap">{ "imports": { "three": "/js/three.module.js", "three/addons/": "/js/addons/" } }</script>
+<style>
+  body { margin: 0; background: #0b0d12; }
+  canvas#out { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; }
+</style>
+</head>
+<body>
+<canvas id="out" width="1920" height="1080"></canvas>
+<script type="module">
+// Performs an episode's voices/cast.json (from the studio's "Voice the cast") with 3D characters.
+//   ?manifest=<path to cast.json>
+// Who is who: each cast member's "look" picks a model and a place at the desk (LOOKS below).
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { buildTimeline, captionAt, drawCaption } from '../puppet/timeline.js';
+import { createRig } from '../puppet/rig.js';
+import { makeActor } from './actor.js';
+import { makeMarlin } from './fish.js';
+import { dressHero } from './costume.js';
+import { buildSet, DESK_Y } from './set.js';
+
+const LOOKS = {
+  hero:    { model: 'tourist-16', x: -1.55, height: 1.86, dress: dressHero },
+  ken:     { model: 'tourist-28', x: -0.52, height: 1.78 },
+  petunia: { model: 'tourist-13', x: 0.5, height: 1.68 },
+  marlin:  { model: 'black-marlin', x: 1.6, fish: true },
+};
+
+const W = 1920, H = 1080;
+const out = document.getElementById('out'), octx = out.getContext('2d');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, W / H, 0.05, 50);
+
+const loader = new GLTFLoader(); const draco = new DRACOLoader(); draco.setDecoderPath('/js/addons/libs/draco/'); loader.setDRACOLoader(draco);
+const manifestPath = new URLSearchParams(location.search).get('manifest');
+const panel = await (await fetch('/abs?path=' + encodeURIComponent(manifestPath))).json();
+const audioCtx = new AudioContext();
+const loadAudio = async (p) => audioCtx.decodeAudioData(await (await fetch('/abs?path=' + encodeURIComponent(p))).arrayBuffer());
+const lookOf = (c) => LOOKS[c.look] || LOOKS.ken;
+const timeline = await buildTimeline(panel, loadAudio, (c) => lookOf(c).x);
+
+buildSet(scene, timeline.people.map((p) => ({ x: lookOf(p).x, noMic: !!lookOf(p).fish })));
+
+// The cast: each person's model, placed at the desk and turned a little toward the middle.
+for (const p of timeline.people) {
+  const look = lookOf(p), gltf = await loader.loadAsync('/models/' + look.model + '.glb');
+  if (look.fish) { p.actor = makeMarlin(gltf, { x: look.x, y: DESK_Y + 0.03, z: 0.4 }); scene.add(p.actor.root); p.fish = true; }
+  else { p.actor = makeActor(gltf, { x: look.x, z: 0, yaw: -look.x * 0.12, height: look.height, phase: p.index * 0.7, dress: look.dress }); scene.add(p.actor.root); }
+  p.rig = createRig();
+}
+
+// Camera: a wide shot of the desk, and a medium close-up of whoever is talking. Wide for the first line and
+// every fourth line after, so the audience keeps its bearings; a slow drift keeps every shot alive.
+const WIDE = { pos: new THREE.Vector3(0, 1.62, 4.6), look: new THREE.Vector3(0, 1.32, 0), fov: 34 };
+function closeOn(p) {
+  if (p.fish) { const c = p.actor.center; return { pos: new THREE.Vector3(c.x - 0.25, c.y + 0.22, 1.85), look: new THREE.Vector3(c.x - 0.05, c.y + 0.08, 0.3), fov: 30 }; }
+  const f = p.actor.face; return { pos: new THREE.Vector3(f.x * 0.82, f.noseY + 0.02, 1.75), look: new THREE.Vector3(f.x, f.noseY - 0.14, 0), fov: 30 };
+}
+const byName = Object.fromEntries(timeline.people.map((p) => [p.name, p]));
+const shots = timeline.lines.map((l, i) => ({ t: i === 0 ? 0 : l.start - 150, shot: i === 0 || i % 4 === 3 ? WIDE : closeOn(byName[l.who]) }));
+function aimCamera(ms) {
+  let s = shots[0]; for (const x of shots) { if (x.t <= ms) s = x; else break; }
+  const since = (ms - s.t) / 1000, drift = Math.min(since, 8) * 0.025;
+  camera.position.copy(s.shot.pos).add(new THREE.Vector3(Math.sin(ms / 4100) * 0.03, Math.sin(ms / 5300) * 0.015, -drift));
+  camera.fov = s.shot.fov; camera.updateProjectionMatrix(); camera.lookAt(s.shot.look);
+}
+
+// Draws the stage at time t (seconds), having moved dt seconds since the last frame.
+function render(t, dt) {
+  const ms = t * 1000;
+  for (const p of timeline.people) {
+    const pose = p.rig.update(p.targetsAt(ms), dt, t);
+    if (p.fish) p.actor.update(pose, t); else p.actor.update(pose, Math.max(0, Math.min(0.05, dt)));
+  }
+  aimCamera(ms);
+  renderer.render(scene, camera);
+  octx.drawImage(renderer.domElement, 0, 0, W, H);
+  drawCaption(octx, captionAt(timeline.captions, ms));
+}
+
+window.renderAt = (t) => { for (let s = Math.max(0, t - 1.5); s < t; s += 1 / 30) render(s, 1 / 30); render(t, 1 / 30); };
+window.timeline = { totalMs: timeline.totalMs, lines: timeline.lines };
+
+// Plays from the start; with record set, records the stage and the voices and returns the recording.
+window.play = async (record = false) => {
+  const dest = audioCtx.createMediaStreamDestination();
+  let recorder = null; const chunks = [];
+  if (record) {
+    const stream = out.captureStream(30); stream.addTrack(dest.stream.getAudioTracks()[0]);
+    recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 4000000, videoKeyFrameIntervalDuration: 2000 });
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); }; recorder.start(1000);
+  }
+  const t0 = audioCtx.currentTime + 0.2;
+  for (const c of timeline.clips) { const src = audioCtx.createBufferSource(); src.buffer = c.buffer; src.connect(audioCtx.destination); src.connect(dest); src.start(t0 + c.start / 1000); }
+  let last = t0, frames = 0;
+  await new Promise((done) => { (function frame() {
+    const now = audioCtx.currentTime, t = Math.max(0, now - t0);
+    render(t, Math.max(0, now - last)); last = Math.max(last, now); frames++;
+    if (t < timeline.totalMs / 1000) requestAnimationFrame(frame); else done();
+  })(); });
+  window.lastFps = frames / (timeline.totalMs / 1000);
+  if (!recorder) return null;
+  recorder.stop(); await new Promise((r) => recorder.addEventListener('stop', r, { once: true }));
+  return { blob: new Blob(chunks, { type: 'video/webm' }), seconds: audioCtx.currentTime - t0 };
+};
+
+window.renderAt(0.5);
+window.ready = true;
+</script>
+</body>
+</html>
