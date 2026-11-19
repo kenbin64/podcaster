@@ -155,6 +155,30 @@
     .status { font-size: 12px; color: #8fb9d6; margin-top: 8px; min-height: 16px; }
     .hint { font-size: 11px; color: #6b8299; margin-top: 6px; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ── Phone mode (Ken, 2026-11-19): the stage fills the phone, tall when upright and wide when sideways; the
+       teleprompter is a band of big words across the MIDDLE, the current word held in the reading box; the
+       buttons are big enough for a thumb. The band is on screen only: it is never in the recording. */
+    html.phone .brandbar { padding: 6px 10px 2px; }
+    html.phone .brandbar .tag, html.phone #evalChip { display: none; }
+    html.phone .wrap { padding: 4px 8px 16px; gap: 12px; }
+    html.phone #stage { aspect-ratio: 9 / 16; width: min(100%, calc(74dvh * 9 / 16)); margin: 0 auto; }
+    html.phone.wide #stage { aspect-ratio: 16 / 9; width: min(100%, calc(78dvh * 16 / 9)); }
+    html.phone #prompter { top: 38%; height: 24%; padding: 0; -webkit-mask-image: none; mask-image: none;
+      background: linear-gradient(180deg, rgba(4,8,14,0), rgba(4,8,14,.74) 20%, rgba(4,8,14,.74) 80%, rgba(4,8,14,0)); }
+    html.phone.wide #prompter { top: 34%; height: 32%; }
+    html.phone #pscroll { top: 50%; margin-top: -0.62em; line-height: 1.24; font-weight: 800; color: rgba(234,246,255,.58); }
+    html.phone #pscroll .w.done { opacity: .22; }
+    html.phone #lens { top: 50%; height: 84px; margin-top: -42px; width: 58%; }
+    html.phone #camlbl { top: 4px; font-size: 11px; }
+    html.phone .btns button { min-height: 50px; font-size: 16px; flex: 1 1 44%; }
+    html.phone #recTestBtn { display: none; }
+    /* The section menu: one row you swipe sideways, instead of five rows covering the Record buttons. */
+    html.phone #footerTabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding: 6px 8px;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    html.phone #footerTabs::-webkit-scrollbar { display: none; }
+    html.phone #footerTabs button { flex: 0 0 auto; white-space: nowrap; padding: 10px 14px; font-size: 14px; min-height: 0; }
+    html.phone body { padding-bottom: 64px; }
   </style>
 </head>
 <body>
@@ -194,6 +218,35 @@
       <div id="stage">
         <canvas id="cv" width="1920" height="1080"></canvas>
         <canvas id="coach" width="1920" height="1080"></canvas>
+        <script>
+          // Phone mode (Ken, 2026-11-19): the front camera, and a teleprompter band of big words across the middle
+          // of the screen. The video follows the phone: upright records TALL (9:16, Shorts, Reels, TikTok),
+          // sideways records WIDE (16:9, YouTube). The shape only changes between recordings, never during one.
+          // On for a touch screen whose short side is phone-sized; ?phone=1 forces it on (testing), ?phone=0 off.
+          // Every drawing routine reads cv.width and cv.height, so resizing the canvases is enough for the picture.
+          // Web mode: served from a website, not by the desktop app on this machine (?web=1 forces it).
+          (function () {
+            const q = location.search;
+            const forced = /[?&]phone=1\b/.test(q), off = /[?&]phone=0\b/.test(q);
+            const phoneSized = Math.min(screen.width, screen.height) <= 820 && matchMedia('(pointer: coarse)').matches;
+            window.PHONE_MODE = !off && (forced || phoneSized);
+            window.WEB_MODE = /[?&]web=1\b/.test(q) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+            if (window.WEB_MODE) document.documentElement.classList.add('web');
+            if (!window.PHONE_MODE) return;
+            document.documentElement.classList.add('phone');
+            window.applyStageShape = function () {
+              if (typeof window.isRecordingNow === 'function' && window.isRecordingNow()) return;   // never mid-recording
+              const wide = innerWidth > innerHeight;
+              const w = wide ? 1920 : 1080, h = wide ? 1080 : 1920;
+              document.documentElement.classList.toggle('wide', wide);
+              for (const id of ['cv', 'coach']) { const c = document.getElementById(id); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+              if (typeof window.layoutMarquee === 'function') window.layoutMarquee(true);
+            };
+            window.applyStageShape();
+            addEventListener('resize', () => window.applyStageShape());
+            addEventListener('orientationchange', () => setTimeout(window.applyStageShape, 250));
+          })();
+        </script>
         <div id="vmcue">listening…</div>
         <div id="prompter"><div id="lens"></div><div id="camlbl">↑ CAMERA ↑</div><div id="pscroll"></div></div>
         <div id="dirInstruct"></div>
@@ -557,7 +610,7 @@
           <b>[slower]</b> / <b>[faster]</b> — change the pace.<br>
           <b>[warm]</b> / <b>[firm]</b> / <b>[serious]</b> / <b>[excited]</b> / <b>[curious]</b> — set the tone (the coach face mirrors it).<br>
           <b>[intensity up]</b> / <b>[softer]</b> — lift or ease the energy.</div></details>
-        <input type="file" id="scriptFile" accept=".txt,.md,text/plain" style="display:none;">
+        <input type="file" id="scriptFile" accept=".txt,.md,.markdown,text/plain,text/markdown" style="display:none;">
         <input type="file" id="mediaFiles" accept="image/*,video/*" multiple style="display:none;">
         <input type="file" id="projFolder" webkitdirectory directory multiple style="display:none;">
         <input type="file" id="projFile" accept=".bfxproj,.json,application/json" style="display:none;">
@@ -754,10 +807,16 @@
     // Set the encode-canvas size from the Export quality toggle, just before a recording starts.
     function setEncodeSize() {
       const q = ($('exportQual') && $('exportQual').value) || '720';
-      ENC_W = (q === '1080') ? 1920 : 1280; ENC_H = (q === '1080') ? 1080 : 720;
+      const long = (q === '1080') ? 1920 : 1280, short = (q === '1080') ? 1080 : 720;
+      const tall = cv.height > cv.width;              // phone mode records a tall (9:16) video
+      ENC_W = tall ? short : long; ENC_H = tall ? long : short;
       if (encCv.width !== ENC_W) encCv.width = ENC_W;
       if (encCv.height !== ENC_H) encCv.height = ENC_H;
     }
+    // Phone mode asks this before turning the stage between tall and wide: never in the middle of a recording.
+    window.isRecordingNow = () => encoding || (typeof recording !== 'undefined' && !!recording);
+    // Phone mode: words big enough to read at arm's length (Ken: "make the words big enough to read").
+    if (window.PHONE_MODE && $('size') && Number($('size').value) < 48) $('size').value = 48;
     function pumpEncode() { if (encoding) { try { encCtx.drawImage(cv, 0, 0, encCv.width, encCv.height); _encFrames++; if (_encTrack && _encTrack.requestFrame) _encTrack.requestFrame(); } catch (_) {} } }   // hand-push each drawn frame to the recorder
     const vid = document.createElement('video'); vid.muted = true; vid.playsInline = true;
 
@@ -833,9 +892,16 @@
     async function startCamera() {
       try {
         if (camStream) camStream.getTracks().forEach(t => t.stop());
-        const camId = $('camSel').value, micId = $('micSel').value;
+        // Phone mode: the list fills itself with the first camera, which on many phones is the BACK one. Use the
+        // front camera unless the person picked a camera from the list themselves.
+        const picked = $('camSel').dataset.userPicked === '1';
+        const camId = (window.PHONE_MODE && !picked) ? '' : $('camSel').value, micId = $('micSel').value;
+        // Phone mode: the front ("selfie") camera, in the same tall shape as the video, so you see yourself and
+        // the words while you record. Desktop: a wide camera as before.
+        const tallNow = window.PHONE_MODE && cv.height > cv.width;
+        const shape = tallNow ? { width: { ideal: 1080 }, height: { ideal: 1920 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } };
         const constraints = {
-          video: camId ? { deviceId: { exact: camId }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } },
+          video: camId ? { deviceId: { exact: camId }, ...shape } : (window.PHONE_MODE ? { facingMode: 'user', ...shape } : shape),
           audio: micId ? { deviceId: { exact: micId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true } : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         };
         try {
@@ -861,6 +927,7 @@
       }
     }
     $('startCam').addEventListener('click', startCamera);
+    $('camSel').addEventListener('change', () => { $('camSel').dataset.userPicked = '1'; });   // a real choice by the person
     $('preBtn').addEventListener('click', () => $('preFile').click());
     $('preFile').addEventListener('change', (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -1535,6 +1602,7 @@
       else _promptX += (target - _promptX) * 0.18;     // smooth glide toward the target
       ps.style.transform = 'translateX(' + _promptX + 'px)';
     }
+    window.layoutMarquee = layoutMarquee;   // phone mode re-centres the words after the screen turns
     function prompterStep(dt) {
       coachIntensity *= 0.985;            // intensity eases back unless a direction tops it up
       if (pWords.length && promptOn) {
@@ -2570,8 +2638,12 @@
         const name = (typeof _slug === 'function' ? _slug($('introTitle').value || 'episode') : 'episode') + '.webm';
         say('Saving your video…');
         let resp = null;
-        try { resp = await fetch('/savevideo?name=' + encodeURIComponent(name), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: blob }); }
-        catch (e) { resp = null; }   // no server reachable (web build): fall back to a browser download
+        if (!window.WEB_MODE) {
+          try { resp = await fetch('/savevideo?name=' + encodeURIComponent(name), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: blob }); }
+          catch (e) { resp = null; }   // no server reachable: fall back to a browser download
+          // A website answers "not found" or "not allowed" instead of saving: that is the web build, so download.
+          if (resp && [404, 405, 501].includes(resp.status)) resp = null;
+        }
         if (resp) {
           if (resp.ok) { const j = await resp.json().catch(() => ({})); if (j && j.path) { say('Saved. Your video is at ' + j.path + ' (the folder just opened).'); return; } if (j && j.error) { say('Save failed: ' + j.error); return; } }
           say('Save did not run. Fully close the app and reopen Manifold-Studio.cmd to load the new save, then try again.'); return;
@@ -2615,7 +2687,7 @@
       return '';
     }
     // MediaRecorder options: pin a sane bitrate so the encoder targets it instead of over-allocating.
-    function recOpts(mime) { const o = mime ? { mimeType: mime } : {}; o.videoBitsPerSecond = (ENC_H >= 1080 ? 12000000 : 8000000); o.audioBitsPerSecond = 128000; return o; }
+    function recOpts(mime) { const o = mime ? { mimeType: mime } : {}; o.videoBitsPerSecond = (Math.min(ENC_W, ENC_H) >= 1080 ? 12000000 : 8000000); o.audioBitsPerSecond = 128000; return o; }
     // Self-test: record a small ANIMATED test pattern through every supported codec, with and without an
     // audio track, and report which combinations actually produced bytes. This isolates the recorder from
     // the camera and the script, so we can see exactly what this machine's MediaRecorder can save.
@@ -3215,6 +3287,13 @@
         const cur = localStorage.getItem('bfx_ai_model');
         const opts = st.models.map((mm) => '<option' + (mm === cur ? ' selected' : '') + '>' + mm + '</option>').join('');
         $('setupBody').innerHTML = '<p style="color:#6ee7a8;font-weight:700;">Your private AI is ready.</p><p>Pick the model the Director uses for rewrites and directing:</p><select id="setupModel" style="width:100%;">' + opts + '</select><div class="hint" style="margin-top:8px;">Everything stays on this machine. Change it anytime under ⚙ Setup.</div>';
+      } else if (window.WEB_MODE) {
+        // On the website: no terminal, no local AI. Say what works here, in plain steps.
+        $('setupBody').innerHTML = '<p>The studio runs right here in your browser. Your recordings stay on this device: nothing is uploaded.</p>'
+          + '<ol class="hint" style="line-height:1.7;font-size:14px;"><li>Paste or write your script.</li><li>Tap <b>Enable camera</b> and allow the camera and microphone.</li>'
+          + '<li>Tap <b>Record</b>: the words scroll across the middle of the screen as you read.</li><li>Tap <b>Save to Video</b>: the video downloads to this device.</li></ol>'
+          + (window.PHONE_MODE ? '<p class="hint">Hold the phone upright. It records a tall video, ready for Shorts, Reels and TikTok.</p>' : '')
+          + '<p class="hint">AI script rewrites need the free desktop app.</p>';
       } else {
         $('setupBody').innerHTML = '<p>The studio is ready to record. Everything works right now, recording, scenes, transitions, exact edits, and assembly are all live.</p><p style="font-weight:700;margin-top:10px;">To turn on the private AI (optional, for dialog rewrites):</p><ol class="hint" style="line-height:1.7;"><li>Install Ollama from <b>ollama.com</b>, it runs a model on your machine, nothing leaves it.</li><li>In a terminal: <code>ollama pull llama3.2</code></li><li>Reopen ⚙ Setup and it will detect it.</li></ol>';
       }
