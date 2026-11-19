@@ -434,6 +434,18 @@
           </div>
           <div id="epPick" class="btns" style="flex-wrap:wrap;"></div>
         </div>
+        <!-- Google Drive (Ken, 2026-11-19): a shared folder holds the script (a Google Doc) and the assets. -->
+        <div style="margin-top:10px;padding:9px;border:1px solid #2a3550;border-radius:8px;background:#0e1626;">
+          <div style="color:#9fd9ff;font-weight:700;font-size:13px;margin-bottom:7px;">☁ Open from Google Drive: script (a Google Doc) + graphics in one shared folder</div>
+          <div class="btns" style="align-items:stretch;">
+            <input type="text" id="driveLink" placeholder="Paste the shared folder link" style="flex:1;min-width:0;" spellcheck="false" autocomplete="off">
+            <button id="driveLoad" class="primary">☁ Load</button>
+          </div>
+          <div class="btns" id="driveKeyRow" style="display:none;margin-top:6px;align-items:stretch;">
+            <input type="text" id="driveKey" placeholder="Google API key (one time; kept on this device)" style="flex:1;min-width:0;" spellcheck="false" autocomplete="off">
+          </div>
+          <div class="hint">In Drive: Share the folder as <b>Anyone with the link: Viewer</b>, then copy its link. The Google Doc becomes the script; images and clips become the graphics, matched by file name.</div>
+        </div>
         <div class="btns" style="margin-top:6px;align-items:stretch;">
           <input type="text" id="folderPath" placeholder="…or paste a folder path, e.g. C:\Podcasts\episode-01" style="flex:1;min-width:0;" spellcheck="false">
           <button id="loadPath" class="primary">📁 Load from path</button>
@@ -1961,7 +1973,8 @@
         if (IMG_RE.test(f.name)) { const img = new Image(); img.src = URL.createObjectURL(f); mediaAssets[f.name] = img; nImg++; }
         else if (VID_RE.test(f.name)) { const v = document.createElement('video'); v.src = URL.createObjectURL(f); v.muted = true; v.loop = true; v.playsInline = true; v.load(); mediaAssets[f.name] = v; nVid++; }
       }
-      const folder = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'folder';
+      const folder = window.__linkLabel || (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'folder';
+      window.__linkLabel = null;
       let report;
       if (scriptFile) {
         $('script').value = await scriptFile.text(); buildPrompter();
@@ -1971,6 +1984,65 @@
       $('mediaStatus').textContent = 'Linked ' + folder + ': ' + report + '  (' + nImg + ' graphic file(s), ' + nVid + ' clip(s) loaded for the cues.)';
       e.target.value = '';
     });
+
+    // ── Google Drive (Ken, 2026-11-19): read a SHARED folder ("Anyone with the link: Viewer") with Google's Drive
+    // API and a browser API key. A Google Doc in the folder becomes the script (exported as plain text and named
+    // *.cuescript.txt so it wins); images, SVGs and clips become the graphics, keyed by file name exactly as in
+    // "Open project folder". The files are then handed to that same loader, so both paths behave the same.
+    // The key is kept on this device; on the website it can be built in (window.BFX_GOOGLE_KEY, restricted to the
+    // site's address in Google Cloud). window.BFX_DRIVE_API exists only so tests can stand in for Google.
+    function driveFolderId(link) {
+      const m = String(link).match(/\/folders\/([\w-]{10,})/) || String(link).match(/[?&]id=([\w-]{10,})/) || String(link).match(/^([\w-]{20,})$/);
+      return m ? m[1] : null;
+    }
+    function driveKey() {
+      let k = window.BFX_GOOGLE_KEY || '';
+      try { k = k || localStorage.getItem('bfx_google_key') || ''; } catch (_) {}
+      const typed = $('driveKey') && $('driveKey').value.trim();
+      if (typed) { k = typed; try { localStorage.setItem('bfx_google_key', typed); } catch (_) {} }
+      return k;
+    }
+    async function driveGet(url, as) {
+      const r = await fetch(url);
+      if (!r.ok) {
+        const why = r.status === 403 || r.status === 404 ? 'not found or not shared. Share the folder as "Anyone with the link: Viewer", and check the API key.'
+          : r.status === 400 ? 'the API key was refused. Check it in Google Cloud (Drive API enabled, key allowed for this site).' : 'Google said ' + r.status + '.';
+        throw new Error(why);
+      }
+      return as === 'json' ? r.json() : as === 'text' ? r.text() : r.blob();
+    }
+    async function loadFromDrive() {
+      const say = (m) => { $('mediaStatus').textContent = m; };
+      const id = driveFolderId($('driveLink').value.trim());
+      if (!id) { say('Paste the shared folder link from Google Drive (it contains /folders/).'); return; }
+      const key = driveKey();
+      if (!key) { $('driveKeyRow').style.display = 'flex'; say('One-time step: paste your Google API key below, then tap Load again.'); return; }
+      const API = window.BFX_DRIVE_API || 'https://www.googleapis.com/drive/v3';
+      const k = '&key=' + encodeURIComponent(key);
+      try {
+        say('Reading the Drive folder…');
+        const list = await driveGet(API + '/files?q=' + encodeURIComponent("'" + id + "' in parents and trashed=false") + '&fields=files(id,name,mimeType)&pageSize=200' + k, 'json');
+        const files = [];
+        for (const f of (list.files || [])) {
+          if (f.mimeType === 'application/vnd.google-apps.document') {          // the script
+            const text = (await driveGet(API + '/files/' + f.id + '/export?mimeType=text%2Fplain' + k, 'text')).replace(/^﻿/, '');
+            files.push(new File([text], f.name.replace(/[\\/:*?"<>|]/g, '_') + '.cuescript.txt', { type: 'text/plain' }));
+          } else if (IMG_RE.test(f.name) || VID_RE.test(f.name) || /\.(txt|md)$/i.test(f.name)) {   // graphics, clips, or a plain script file
+            say('Downloading ' + f.name + '…');
+            const blob = await driveGet(API + '/files/' + f.id + '?alt=media' + k, 'blob');
+            files.push(new File([blob], f.name, { type: blob.type || f.mimeType }));
+          }
+        }
+        if (!files.length) { say('That folder has no Google Doc, images or clips the studio can use.'); return; }
+        const dt = new DataTransfer(); files.forEach((f) => dt.items.add(f));
+        window.__linkLabel = 'your Google Drive folder';   // so the status reads "Linked your Google Drive folder: ..."
+        $('projFolder').files = dt.files;
+        $('projFolder').dispatchEvent(new Event('change', { bubbles: true }));
+        $('driveKeyRow').style.display = 'none';
+      } catch (e) { say('Could not read the Drive folder: ' + e.message); }
+    }
+    $('driveLoad').addEventListener('click', loadFromDrive);
+    window.driveFolderId = driveFolderId;   // for the tests
 
     // Type or paste a folder PATH and load it. In the desktop build the loopback server reads the folder
     // via Node (/readproject) and streams each asset by absolute path (/projectfile). In a plain browser
