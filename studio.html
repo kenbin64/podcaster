@@ -4281,10 +4281,16 @@
           const t = document.createElement('div'); t.className = 't';
           const b = document.createElement('b'); b.textContent = (i + 1) + '. ' + s.title;
           const sub = document.createElement('span');
-          sub.textContent = s.kind === 'video' ? 'video' : (s.url ? 'script · recorded ✓ (tap ▶ to watch)' : 'script · not recorded yet');
+          const n = (s.takes || []).length;
+          sub.textContent = s.kind === 'video' ? 'video' : (!n ? 'script · not recorded yet' : n === 1 ? 'script · recorded ✓' : 'script · take ' + (s.chosen + 1) + ' of ' + n + ' in the final ✓');
           t.append(b, sub); row.appendChild(t);
           const btn = (label, title, act) => { const x = document.createElement('button'); x.textContent = label; x.title = title; x.onclick = (e) => { e.stopPropagation(); act(); }; row.appendChild(x); };
-          if (s.url) btn('▶', 'Watch', () => { const p = $('spPlayer'); p.src = s.url; p.style.display = 'block'; p.play().catch(() => {}); });
+          const watch = () => { const p = $('spPlayer'); p.src = s.url; p.style.display = 'block'; p.play().catch(() => {}); };
+          if (n > 1) {                                       // pick the take that goes in the final video, and watch it
+            btn('‹', 'Previous take', () => { useTake(s, (s.chosen - 1 + n) % n); render(); watch(); status('"' + s.title + '": take ' + (s.chosen + 1) + ' of ' + n + ' is now in the final video.'); });
+            btn('›', 'Next take', () => { useTake(s, (s.chosen + 1) % n); render(); watch(); status('"' + s.title + '": take ' + (s.chosen + 1) + ' of ' + n + ' is now in the final video.'); });
+          }
+          if (s.url) btn('▶', 'Watch', watch);
           btn('↑', 'Move up', () => move(i, -1)); btn('↓', 'Move down', () => move(i, 1));
           btn('✕', 'Remove', () => remove(i));
           row.onclick = () => select(i);
@@ -4308,14 +4314,19 @@
         render(); status('Added "' + f.name + '" after scene ' + (cur + 1) + '. Use ↑ ↓ to move it.'); e.target.value = '';
       };
 
-      // A finished recording belongs to the selected scene (recording again replaces it).
+      // A finished recording is a new TAKE of the selected scene (Ken: "people can do takes, then pick the ones
+      // they want for the final edit"). Every take is kept; the chosen one plays and goes into the final video.
+      // s.blob / s.url always point at the chosen take.
+      function useTake(s, i) { s.chosen = Math.max(0, Math.min(i, s.takes.length - 1)); s.blob = s.takes[s.chosen].blob; s.url = s.takes[s.chosen].url; }
       window.simpleSceneRecorded = (blob) => {
         if (!document.documentElement.classList.contains('simple')) return false;
         const s = scenes[cur]; if (!s || s.kind !== 'script') return false;
-        if (s.url) URL.revokeObjectURL(s.url);
-        s.blob = blob; s.url = URL.createObjectURL(blob); render();
+        s.takes = s.takes || [];
+        s.takes.push({ blob, url: URL.createObjectURL(blob) });
+        useTake(s, s.takes.length - 1); render();
         const next = scenes.findIndex((x, i) => i > cur && x.kind === 'script' && !x.url);
-        status('Recorded "' + s.title + '". ' + (next >= 0 ? 'Next: tap scene ' + (next + 1) + ', or Save to video.' : 'Tap Save to video when you are done.'));
+        status('Recorded take ' + s.takes.length + ' of "' + s.title + '". ' + (s.takes.length > 1 ? 'Use ‹ › to pick the take for the final video. ' : '')
+          + (next >= 0 ? 'Next: tap scene ' + (next + 1) + ', or Save to video.' : 'Tap Save to video when you are done.'));
         return true;
       };
 
@@ -4386,7 +4397,7 @@
         $('spPlayer').pause(); $('spPlayer').style.display = 'none';
         $('recBtn').click();
       };
-      setInterval(() => { const live = typeof recording !== 'undefined' && recording; $('spRec').classList.toggle('live', !!live); $('spRec').textContent = live ? '■ Stop' : (scenes[cur] && scenes[cur].url ? '● Record this scene again' : '● Record this scene'); }, 300);
+      setInterval(() => { const live = typeof recording !== 'undefined' && recording; $('spRec').classList.toggle('live', !!live); $('spRec').textContent = live ? '■ Stop' : (scenes[cur] && scenes[cur].url ? '● Record another take' : '● Record this scene'); }, 300);
 
       // ── Save: one scene saves as it is; several are spliced in order ────────────
       $('spSave').onclick = () => {
