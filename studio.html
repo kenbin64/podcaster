@@ -4236,7 +4236,12 @@
       panel.innerHTML = `
         <div class="sp-card"><h3>Scenes</h3><div id="spScenes"></div>
           <div class="sp-row"><button id="spNewScene">+ New scene</button><button id="spAddVideo">+ Add a video</button></div>
-          <video id="spPlayer" controls playsinline></video></div>
+          <video id="spPlayer" controls playsinline></video>
+          <div class="sp-row" style="margin-top:10px;border-top:1px solid #1c2a40;padding-top:8px;">
+            <span class="sp-lbl" id="spKept">Kept on this device</span>
+            <button id="spSaveProj" title="One file with every script, take, picture and video: open it on another device">📦 Save project file</button>
+            <button id="spOpenProj">📂 Open project file</button>
+            <button id="spNewProj" title="Start over (asks first)">🗑 New project</button></div></div>
         <div class="sp-card" id="spScriptCard"><h3 id="spScriptTitle">Script</h3>
           <div class="sp-row"><button id="spOpenFiles" title="Pick the script (.txt or .md) and its pictures and videos together">📂 Open files</button><button id="spImport">⤓ Import script only</button></div>
           <textarea id="spScript" spellcheck="true" placeholder="Write or paste this scene's script. Put a picture's button right before the word it goes with."></textarea>
@@ -4257,7 +4262,8 @@
         <div id="spStatus"></div>
         <button class="sp-more" id="spMore">More tools (the full studio) ▾</button>
         <input type="file" id="spVideoFile" accept="video/*" style="display:none;">
-        <input type="file" id="spFiles" multiple accept=".txt,.md,.markdown,text/plain,text/markdown,image/*,video/*" style="display:none;">`;
+        <input type="file" id="spFiles" multiple accept=".txt,.md,.markdown,text/plain,text/markdown,image/*,video/*" style="display:none;">
+        <input type="file" id="spProjFile" accept=".bfxstudio,application/octet-stream" style="display:none;">`;
       stage.after(panel);
       const status = (m) => { $('spStatus').textContent = m; };
 
@@ -4440,6 +4446,99 @@
 
       // Phone: a clean picture by default (no badge, clock, ON AIR sign or microphone prop).
       if (window.PHONE_MODE) ['optBadge', 'optAir', 'optMic'].forEach((id) => { const c = $(id); if (c && c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); } });
+
+      // ── Keep the project on this device (Ken, 2026-11-19: "scenes do not have to be made at the same time") ──
+      // Scripts, every take, the pictures and the videos are kept in the browser's own storage (IndexedDB) on this
+      // device, saved a moment after each change and restored when the studio opens again. Nothing is uploaded.
+      // A project file carries the same thing to another device.
+      const DB = 'bfx-studio', STORE = 'project', KEY = 'current';
+      const idb = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+      async function idbDo(mode, fn) { const db = await idb(); try { return await new Promise((res, rej) => { const tx = db.transaction(STORE, mode); const out = fn(tx.objectStore(STORE)); tx.oncomplete = () => res(out && out.result); tx.onerror = () => rej(tx.error); }); } finally { db.close(); } }
+      const assetBlobs = {};                               // picture/video name -> its file, read once from the page
+      async function assetBlob(name) {
+        if (assetBlobs[name]) return assetBlobs[name];
+        const el = mediaAssets[name]; if (!el || !el.src) return null;
+        try { assetBlobs[name] = await (await fetch(el.src)).blob(); } catch (_) { return null; }
+        return assetBlobs[name];
+      }
+      async function snapshot() {
+        store();
+        const assets = {};
+        for (const n of Object.keys(mediaAssets)) { const b = await assetBlob(n); if (b) assets[n] = b; }
+        return { version: 1, savedAt: Date.now(), cur, assets,
+          scenes: scenes.map((s) => ({ kind: s.kind, title: s.title, script: s.script || '', chosen: s.chosen || 0,
+            takes: (s.takes || []).map((t) => t.blob), video: s.kind === 'video' ? s.blob : null })) };
+      }
+      const hasContent = (p) => p && p.scenes && p.scenes.some((s) => (s.script || '').trim() || (s.takes && s.takes.length) || s.video);
+      let restored = false, saveTimer = null;
+      function scheduleSave() { if (!restored) return; clearTimeout(saveTimer); $('spKept').textContent = 'Saving…'; saveTimer = setTimeout(saveNow, 800); }
+      // Build the snapshot first (reading pictures and videos takes a moment), then write it in one step.
+      async function saveNow() {
+        try {
+          const snap = await snapshot();
+          await idbDo('readwrite', (st) => st.put(snap, KEY));
+          $('spKept').textContent = 'Kept on this device ✓'; window.__lastSaved = Date.now();
+        } catch (e) { $('spKept').textContent = 'Not kept: ' + (e && e.message ? e.message : e); }
+      }
+      function loadAsset(name, blob) {
+        assetBlobs[name] = blob;
+        const url = URL.createObjectURL(blob);
+        if (/^video\//.test(blob.type) || VID_RE.test(name)) { const v = document.createElement('video'); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.load(); mediaAssets[name] = v; }
+        else { const img = new Image(); img.src = url; mediaAssets[name] = img; }
+      }
+      function restore(p) {
+        Object.entries(p.assets || {}).forEach(([n, b]) => loadAsset(n, b));
+        scenes.splice(0, scenes.length, ...p.scenes.map((s) => {
+          const o = { kind: s.kind, title: s.title, script: s.script || '', takes: [], chosen: 0, blob: null, url: null };
+          if (s.kind === 'video' && s.video) { o.blob = s.video; o.url = URL.createObjectURL(s.video); }
+          else { o.takes = (s.takes || []).map((b) => ({ blob: b, url: URL.createObjectURL(b) })); if (o.takes.length) useTake(o, Math.min(s.chosen || 0, o.takes.length - 1)); }
+          return o;
+        }));
+        cur = Math.max(0, Math.min(p.cur || 0, scenes.length - 1));
+        select(cur, { noStore: true }); renderPics();
+        if (typeof buildChannels === 'function') buildChannels();
+        const takesN = scenes.reduce((a, s) => a + (s.takes || []).length, 0);
+        status('Welcome back: your project is here (' + scenes.length + ' scene' + (scenes.length === 1 ? '' : 's') + ', ' + takesN + ' take' + (takesN === 1 ? '' : 's') + ').');
+      }
+      idbDo('readonly', (st) => st.get(KEY)).then((p) => { if (hasContent(p)) restore(p); }).catch(() => {}).finally(() => { restored = true; });
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}   // ask the browser not to clear it
+      $('spScript').addEventListener('input', scheduleSave);
+      const _render = render; render = function () { _render(); scheduleSave(); };
+      const _renderPics = renderPics; renderPics = function () { _renderPics(); scheduleSave(); };
+
+      // Project file: one file with everything (a small header, then each recording, picture and video as is).
+      // Layout: "BFXSTUDIO1\n" + 12-digit header length + "\n" + header JSON + the files back to back.
+      $('spSaveProj').onclick = async () => {
+        const snap = await snapshot(), parts = [], ref = (b) => { if (!b) return null; parts.push(b); return parts.length - 1; };
+        const meta = { version: 1, cur: snap.cur, scenes: snap.scenes.map((s) => ({ ...s, takes: s.takes.map(ref), video: ref(s.video) })),
+          assets: Object.entries(snap.assets).map(([n, b]) => ({ name: n, part: ref(b) })) };
+        const head = { meta, parts: parts.map((b) => ({ type: b.type || '', size: b.size })) };
+        const bytes = new TextEncoder().encode(JSON.stringify(head));
+        const file = new Blob(['BFXSTUDIO1\n', String(bytes.length).padStart(12, '0') + '\n', bytes, ...parts], { type: 'application/octet-stream' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = 'podcast-project.bfxstudio'; a.click();
+        status('Project file saved (' + (file.size / 1048576).toFixed(1) + ' MB). Open it on another device with 📂 Open project file.');
+      };
+      $('spOpenProj').onclick = () => $('spProjFile').click();
+      $('spProjFile').onchange = async (e) => {
+        const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+        try {
+          if (await f.slice(0, 11).text() !== 'BFXSTUDIO1\n') throw new Error('this is not a studio project file');
+          const len = Number(await f.slice(11, 23).text()), start = 24;
+          const head = JSON.parse(new TextDecoder().decode(await f.slice(start, start + len).arrayBuffer()));
+          let at = start + len; const blobs = head.parts.map((p) => { const b = f.slice(at, at + p.size, p.type); at += p.size; return b; });
+          const m = head.meta, pick = (i) => (i == null ? null : blobs[i]);
+          const assets = {}; m.assets.forEach((x) => { assets[x.name] = pick(x.part); });
+          restore({ cur: m.cur, assets, scenes: m.scenes.map((s) => ({ ...s, takes: s.takes.map(pick), video: pick(s.video) })) });
+          scheduleSave();
+        } catch (err) { status('Could not open that file: ' + err.message); }
+      };
+      $('spNewProj').onclick = async () => {
+        if (!confirm('Start a new project? This removes the current scenes, takes, pictures and videos from this device.\n(Save a project file first if you want to keep them.)')) return;
+        try { await idbDo('readwrite', (st) => st.delete(KEY)); } catch (_) {}
+        Object.keys(mediaAssets).forEach((n) => delete mediaAssets[n]); Object.keys(assetBlobs).forEach((n) => delete assetBlobs[n]);
+        scenes.splice(0, scenes.length, { kind: 'script', title: 'Scene 1', script: '', takes: [], chosen: 0, blob: null, url: null });
+        cur = 0; select(0, { noStore: true }); renderPics(); status('New project. Write or open a script for scene 1.');
+      };
 
       $('spScript').value = scenes[0].script; renderPics(); render();
       window.simpleScenes = scenes;   // for the tests
