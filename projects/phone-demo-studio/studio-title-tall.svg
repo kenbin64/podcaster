@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1080" height="1920" fill="url(#g)"/><rect x="0" y="0" width="1080" height="16" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+<rect x="390" y="300" width="300" height="540" rx="46" fill="none" stroke="#2dd4bf" stroke-width="10"/>
+<circle cx="540" cy="350" r="14" fill="#2dd4bf"/>
+<rect x="420" y="560" width="240" height="56" rx="10" fill="#16304a" stroke="#7fe0c4" stroke-width="3"/>
+<text x="540" y="600" font-size="34" font-weight="700" fill="#ffffff">words</text>
+<text x="540" y="1040" font-size="104" font-weight="800" fill="#ffffff">Made on</text>
+<text x="540" y="1160" font-size="104" font-weight="800" fill="#2dd4bf">a phone</text>
+<text x="540" y="1320" font-size="56" fill="#e6edf3">No editing afterward.</text>
+<text x="540" y="1780" font-size="34" fill="#5c7690">ButterflyFx Podcast Creator</text>
+</g>
+</svg>

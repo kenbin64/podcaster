@@ -1934,7 +1934,11 @@
         else { ctx.fillStyle = '#0a0f17'; ctx.fillRect(0, 0, W, H); placeholderBox(W * 0.18, H * 0.30, W * 0.64, H * 0.40, mediaOv.label, 'FULL FRAME'); }
         ctx.restore();
       } else {
-        const bw = W * 0.30, bh = bw * 9 / 16, x = W - bw - W * 0.03 + (1 - fade) * 40, y = H * 0.10;
+        // Wide video: a small picture top right. Tall (phone) video: nearly full width across the top, above the
+        // face, big enough to read on a phone (at 30% of a tall frame it would be a postage stamp).
+        const tall = H > W;
+        const bw = tall ? W * 0.88 : W * 0.30, bh = bw * 9 / 16;
+        const x = (tall ? (W - bw) / 2 : W - bw - W * 0.03) + (1 - fade) * 40, y = tall ? H * 0.05 : H * 0.10;
         ctx.save(); ctx.globalAlpha = fade;
         ctx.fillStyle = '#0a0f17'; roundRect(ctx, x, y, bw, bh, 12); ctx.fill();
         if (ready && vw) {

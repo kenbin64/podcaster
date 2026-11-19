@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1080" height="1920" fill="url(#g)"/><rect x="0" y="0" width="1080" height="16" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+<text x="540" y="620" font-size="118" font-weight="800" fill="#ffffff">No AI inside.</text>
+<text x="540" y="780" font-size="62" fill="#e6edf3">Same code, same answer,</text>
+<text x="540" y="870" font-size="62" fill="#e6edf3">every run.</text>
+<text x="540" y="1010" font-size="40" fill="#a9bccf">Built on PIT, PMD, SpotBugs,</text>
+<text x="540" y="1070" font-size="40" fill="#a9bccf">Selenium and Testcontainers.</text>
+<rect x="90" y="1240" width="900" height="150" rx="24" fill="#16304a" stroke="#2dd4bf" stroke-width="5"/>
+<text x="540" y="1335" font-size="44" font-weight="700" fill="#2dd4bf">github.com/kenbin64/testthispuppy</text>
+<text x="540" y="1780" font-size="32" fill="#5c7690">Recorded on a phone with ButterflyFx Podcast Creator</text>
+</g>
+</svg>

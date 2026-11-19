@@ -1,0 +1,7 @@
+{section | Made on a phone | wipe}
+{full | studio-title-tall.svg | Made on a phone} Hi, I'm Ken. I'm making this whole video on my phone, right now, and there's no editing afterward.
+{clear} {text ll | The words I'm reading} See the words I'm reading? They scroll across the middle of my screen, right under the camera. You can't see them in the video, but I can.
+{cleartext} Every picture in this video is called up by the script. Watch. {news | three-parts.svg | Say it, show it, direct it} There it is, right on cue.
+{news | cue-anatomy.svg | A cue in curly braces} I put a cue right before a word, {emoji ur | 🎯} and the picture lands the moment I say it.
+{news | drive.svg | From Google Drive} The script and every picture came straight from a folder in my Google Drive.
+{clear} {full | studio-cta-tall.svg | No post-production} When I stop talking, the video is done. I just tap save.

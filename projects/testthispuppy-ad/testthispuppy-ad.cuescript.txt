@@ -1,0 +1,13 @@
+{section | TestThisPuppy | wipe}
+{news | title.svg | Don't read the code. Test the code.} Meet TestThisPuppy. Its rule is simple: don't read the code, test the code.
+{cleartext} {full | problem.svg | AI writes code fast} AI writes code faster than anyone can read it. {text ll | So who checks it?} So who checks it?
+{clear} {cleartext}
+{section | How it works | slide}
+{left | how.svg | One run, four checks} {text ll | Runs your real app} It runs your real app and uses it like a person would, {cleartext} {text ll | On a throwaway database} on a throwaway copy of the database, then puts everything back exactly as it was.
+{cleartext} {text ll | It tests your tests} It even tests your tests. One app had ninety nine percent coverage, yet its tests caught only thirty one of forty one planted bugs.
+{clear} {cleartext}
+{section | The proof | pop}
+{news | benchmark.svg | Twenty one planted bugs} In a benchmark of twenty one planted bugs, it found ten on its own, more than SonarQube, SpotBugs, ZAP or OSV Scanner alone.
+{full | onetool.svg | One tool, one report} One tool, one settings file and one report, in under a minute.
+{clear} [to camera] {news | cta.svg | No AI inside} {text ll | No AI inside} And there is no AI inside. The same code gets the same answer, every run.
+{recap | Don't read the code. Test the code.}

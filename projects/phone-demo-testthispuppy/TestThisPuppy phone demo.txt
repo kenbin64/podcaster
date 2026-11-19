@@ -1,0 +1,8 @@
+{section | TestThisPuppy | wipe}
+{full | ttp-title-tall.svg | TestThisPuppy} Hi, I'm Ken. This is TestThisPuppy, and I'm recording this on my phone, with no editing afterward.
+{clear} {news | problem.svg | Who checks the code?} AI writes code faster than anyone can read it. So who checks it?
+{news | how.svg | One run, four checks} TestThisPuppy runs your real app the way a person would, on a throwaway copy of the database, and puts everything back when it's done. It even tests your tests.
+{news | benchmark.svg | Twenty one planted bugs} In my benchmark of twenty one planted bugs, it found ten on its own. That's more than SonarQube, SpotBugs, ZAP or OSV Scanner alone.
+{news | onetool.svg | One tool, one report} One tool, one settings file and one report, in under a minute.
+{clear} {full | ttp-cta-tall.svg | No AI inside} And there's no AI inside. Same code, same answer, every run.
+[to camera] Don't read the code. Test the code.

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1080" height="1920" fill="url(#g)"/><rect x="0" y="0" width="1080" height="16" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+<text x="540" y="560" font-size="96" font-weight="800" fill="#ffffff">No post-production.</text>
+<text x="540" y="700" font-size="58" fill="#e6edf3">Stop talking, tap save.</text>
+<g font-size="46" fill="#e6edf3" text-anchor="start">
+<text x="200" y="900">1  Script in a Google Doc</text>
+<text x="200" y="990">2  Read it off the screen</text>
+<text x="200" y="1080">3  Graphics appear on cue</text>
+<text x="200" y="1170">4  The video is done</text>
+</g>
+<rect x="140" y="1320" width="800" height="150" rx="24" fill="#16304a" stroke="#2dd4bf" stroke-width="5"/>
+<text x="540" y="1415" font-size="52" font-weight="700" fill="#2dd4bf">butterflyfx.us/studio</text>
+<text x="540" y="1780" font-size="32" fill="#5c7690">Free and open source: github.com/kenbin64/podcaster</text>
+</g>
+</svg>

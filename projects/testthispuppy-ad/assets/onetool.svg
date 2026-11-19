@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1600" height="900" fill="url(#g)"/><rect x="0" y="0" width="18" height="900" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif">
+<rect x="140" y="200" width="620" height="520" rx="26" fill="#16304a" stroke="#2dd4bf" stroke-width="4"/>
+<text x="450" y="300" font-size="56" font-weight="800" fill="#2dd4bf" text-anchor="middle">TestThisPuppy</text>
+<text x="450" y="400" font-size="46" fill="#ffffff" text-anchor="middle">1 tool</text>
+<text x="450" y="470" font-size="46" fill="#ffffff" text-anchor="middle">1 settings file</text>
+<text x="450" y="540" font-size="46" fill="#ffffff" text-anchor="middle">1 report + fix list</text>
+<text x="450" y="640" font-size="42" font-weight="700" fill="#2dd4bf" text-anchor="middle">under a minute</text>
+<rect x="840" y="200" width="620" height="520" rx="26" fill="#1c2430" stroke="#5c7690" stroke-width="3"/>
+<text x="1150" y="300" font-size="48" font-weight="700" fill="#a9bccf" text-anchor="middle">The four others</text>
+<text x="1150" y="400" font-size="40" fill="#a9bccf" text-anchor="middle">4 tools to install</text>
+<text x="1150" y="470" font-size="40" fill="#a9bccf" text-anchor="middle">a server, tokens, plugins</text>
+<text x="1150" y="540" font-size="40" fill="#a9bccf" text-anchor="middle">4 separate reports</text>
+<text x="1150" y="640" font-size="38" fill="#a9bccf" text-anchor="middle">about 5 minutes + setup</text>
+</g>
+</svg>

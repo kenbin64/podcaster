@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1080" height="1920" fill="url(#g)"/><rect x="0" y="0" width="1080" height="16" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+<text x="540" y="560" font-size="44" letter-spacing="8" fill="#7fe0c4">QA IN A BOX</text>
+<text x="540" y="740" font-size="128" font-weight="800" fill="#ffffff">TestThis</text>
+<text x="540" y="880" font-size="128" font-weight="800" fill="#ffffff">Puppy</text>
+<text x="540" y="1120" font-size="72" fill="#e6edf3">Don't read the code.</text>
+<text x="540" y="1230" font-size="72" font-weight="700" fill="#2dd4bf">Test the code.</text>
+<text x="540" y="1780" font-size="34" fill="#5c7690">github.com/kenbin64/testthispuppy</text>
+</g>
+</svg>

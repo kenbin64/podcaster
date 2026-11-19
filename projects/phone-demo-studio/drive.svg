@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#14263a"/></linearGradient></defs>
+<rect width="1600" height="900" fill="url(#g)"/><rect x="0" y="0" width="18" height="900" fill="#2dd4bf"/>
+<g font-family="Segoe UI, Arial, sans-serif">
+<text x="120" y="150" font-size="44" letter-spacing="6" fill="#7fe0c4">ONE SHARED FOLDER</text>
+<path d="M160 260 h230 l50 50 h560 a20 20 0 0 1 20 20 v380 a20 20 0 0 1 -20 20 h-820 a20 20 0 0 1 -20 -20 v-430 a20 20 0 0 1 20 -20 z" fill="#16304a" stroke="#2dd4bf" stroke-width="5"/>
+<rect x="220" y="380" width="220" height="270" rx="12" fill="#e6edf3"/><text x="330" y="470" font-size="30" text-anchor="middle" fill="#0b1220" font-weight="700">Google</text><text x="330" y="510" font-size="30" text-anchor="middle" fill="#0b1220" font-weight="700">Doc</text><text x="330" y="600" font-size="26" text-anchor="middle" fill="#3b5068">the script</text>
+<rect x="480" y="380" width="200" height="130" rx="10" fill="#2dd4bf"/><rect x="700" y="380" width="200" height="130" rx="10" fill="#7fe0c4"/>
+<rect x="480" y="530" width="200" height="120" rx="10" fill="#5c7690"/><rect x="700" y="530" width="200" height="120" rx="10" fill="#f472b6"/>
+<text x="690" y="700" font-size="28" text-anchor="middle" fill="#e6edf3">the pictures</text>
+<path d="M1040 480 h140" stroke="#e6edf3" stroke-width="10"/><path d="M1170 450 l40 30 l-40 30" fill="none" stroke="#e6edf3" stroke-width="10" stroke-linejoin="round"/>
+<rect x="1250" y="300" width="230" height="420" rx="34" fill="none" stroke="#2dd4bf" stroke-width="7"/><circle cx="1365" cy="335" r="9" fill="#2dd4bf"/>
+<text x="1365" y="520" font-size="34" text-anchor="middle" fill="#ffffff" font-weight="700">studio</text>
+<text x="800" y="830" font-size="34" text-anchor="middle" fill="#a9bccf">Paste the link, tap Load: script and graphics, ready to record.</text>
+</g>
+</svg>
