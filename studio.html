@@ -1350,7 +1350,9 @@
     }
     function drawWebcam() {
       const W = cv.width, H = cv.height;
-      const fw = W * 0.62, fh = fw * 9 / 16, fx = (W - fw) / 2, fy = H * 0.10;
+      // Phone: you fill the whole frame (a selfie video). Desktop: the framed camera window as before.
+      const full = !!window.PHONE_MODE;
+      const fw = full ? W : W * 0.62, fh = full ? H : fw * 9 / 16, fx = full ? 0 : (W - fw) / 2, fy = full ? 0 : H * 0.10;
       ctx.save();
       roundRect(ctx, fx, fy, fw, fh, 18); ctx.clip();
       // mirror (selfie view) + cover-fit the video into the frame
@@ -1361,6 +1363,7 @@
       else { ctx.translate(fx + fw, fy); ctx.scale(-1, 1); }   // live selfie view is mirrored
       ctx.drawImage(vid, (fw - dw) / 2, (fh - dh) / 2, dw, dh);
       ctx.restore();
+      if (full) return;                                  // no frame line around a full-screen selfie
       ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,255,238,0.35)';
       roundRect(ctx, fx, fy, fw, fh, 18); ctx.stroke();
     }
@@ -2946,6 +2949,7 @@
         return;
       }
       window.__lastBlob = blob;
+      if (typeof window.simpleSceneRecorded === 'function' && window.simpleSceneRecorded(blob)) return;   // simple mode keeps it on its scene
       showClip(URL.createObjectURL(blob), { label: 'Your recording', blob: blob });
       $('status').textContent = 'Recorded ' + _encFrames + ' frames, ' + (blob.size / 1048576).toFixed(1) + ' MB. Saving a copy to disk...'; try { fetch('/savescene?slug=oneshot&scene=1&take=' + Date.now(), { method: 'POST', body: blob }).then((r) => r.json()).then((j) => { if (j && j.path && $('status')) $('status').textContent = 'Recorded ' + _encFrames + ' frames, ' + (blob.size / 1048576).toFixed(1) + ' MB. Frames saved to: ' + j.path; }).catch(() => {}); } catch (_) {}
     }
@@ -4229,6 +4233,232 @@
         else { btn.style.cssText = 'position:fixed;left:14px;bottom:14px;z-index:6001;background:#3a1f1f;border:1px solid #6b3a3a;color:#ffd0d0;border-radius:8px;padding:8px 12px;cursor:pointer;'; document.body.appendChild(btn); }
         console.log('Start-fresh button installed (BUILD 22).');
       } catch (e) { if (typeof _showFatal === 'function') _showFatal('fresh btn: ' + e.message); }
+    })();
+  </script>
+
+  <!-- ══ SIMPLE MODE (Ken, 2026-11-19) ═══════════════════════════════════════════════════════════════
+       "It's meant to be simple: add your script, some buttons for effects, hit record, read, save to video,
+       done." One script per scene; a scene is a script you record, or a video you add; Save splices every
+       scene in order. Everything else stays in the full studio, behind "More tools". This panel only drives
+       the studio's own controls (the script box, the recorder, the effects, the assembly engine), so both
+       modes stay one program. -->
+  <style>
+    #simplePanel { margin-top: 12px; display: none; }
+    html.simple #simplePanel { display: block; }
+    html.simple .sp-hide { display: none !important; }
+    html.simple .wrap { grid-template-columns: minmax(0, 960px); justify-content: center; }
+    html.simple #footerTabs, html.simple #freshBtn { display: none !important; }
+    html.simple body { padding-bottom: 20px; }
+    .sp-card { background: #0d1420; border: 1px solid #22303f; border-radius: 12px; padding: 12px; margin-top: 10px; }
+    .sp-card h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: 1px; color: #7fd4c4; text-transform: uppercase; }
+    .sp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .sp-row button, .sp-big { background: #13202e; border: 1px solid #2a3b4d; color: #dfe9f5; border-radius: 9px; padding: 9px 12px; font-size: 14px; cursor: pointer; }
+    .sp-row button.on { border-color: #2dd4bf; color: #fff; background: #103a3a; }
+    .sp-big { width: 100%; padding: 15px; font-size: 18px; font-weight: 800; margin-top: 8px; }
+    .sp-rec { background: #6b1d2a; border-color: #b4344d; color: #fff; }
+    .sp-rec.live { background: #b4344d; }
+    .sp-save { background: #0f5a4f; border-color: #2dd4bf; color: #fff; }
+    #spScript { width: 100%; min-height: 150px; margin: 8px 0; font: 15px/1.45 Consolas, monospace; background: #070c14; color: #e6edf3; border: 1px solid #22303f; border-radius: 9px; padding: 10px; box-sizing: border-box; }
+    .sp-scene { display: flex; align-items: center; gap: 6px; padding: 8px; border: 1px solid #1c2a40; border-radius: 9px; margin-bottom: 6px; cursor: pointer; }
+    .sp-scene.cur { border-color: #2dd4bf; background: rgba(45,212,191,.08); }
+    .sp-scene .t { flex: 1; min-width: 0; } .sp-scene .t b { display: block; } .sp-scene .t span { color: #8fa6bd; font-size: 12px; }
+    .sp-scene button { background: #13202e; border: 1px solid #2a3b4d; color: #dfe9f5; border-radius: 7px; padding: 6px 9px; cursor: pointer; }
+    #spStatus { color: #8fb9d6; font-size: 13px; margin-top: 8px; min-height: 16px; }
+    #spPlayer { width: 100%; max-height: 50vh; margin-top: 8px; border-radius: 9px; background: #000; display: none; }
+    .sp-more { background: none; border: 0; color: #7f9bbd; text-decoration: underline; cursor: pointer; margin-top: 12px; font-size: 14px; }
+    #spBack { display: none; margin-left: 8px; background: #103a3a; border: 1px solid #2dd4bf; color: #fff; border-radius: 7px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    html:not(.simple) #spBack { display: inline-block; }
+  </style>
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const stage = $('stage');
+
+      // ── The panel ──────────────────────────────────────────────────────────────
+      const panel = document.createElement('div');
+      panel.id = 'simplePanel';
+      panel.innerHTML = `
+        <div class="sp-card"><h3>Scenes</h3><div id="spScenes"></div>
+          <div class="sp-row"><button id="spNewScene">+ New scene</button><button id="spAddVideo">+ Add a video</button></div>
+          <video id="spPlayer" controls playsinline></video></div>
+        <div class="sp-card" id="spScriptCard"><h3 id="spScriptTitle">Script</h3>
+          <div class="sp-row"><button id="spImport">⤓ Import .txt / .md</button><button id="spDrive">☁ Google Drive</button></div>
+          <textarea id="spScript" spellcheck="true" placeholder="Write or paste this scene's script. Put a picture's button right before the word it goes with."></textarea>
+          <div class="sp-row"><button id="spPause" title="Insert a pause">⏸ Pause</button><button id="spCaption" title="Insert an on-screen caption">💬 Caption</button>
+            <button id="spAddPics">+ Add pictures</button><span style="color:#8fa6bd;font-size:12px;margin-left:4px;">Pictures show:</span>
+            <button id="spTop" class="on">Top</button><button id="spFull">Full screen</button></div>
+          <div class="sp-row" id="spPics" style="margin-top:6px;"></div></div>
+        <div class="sp-card"><h3>Effects</h3><div class="sp-row" id="spFx"></div></div>
+        <button class="sp-big sp-rec" id="spRec">● Record this scene</button>
+        <button class="sp-big sp-save" id="spSave">💾 Save to video</button>
+        <div id="spStatus"></div>
+        <button class="sp-more" id="spMore">More tools (the full studio) ▾</button>
+        <input type="file" id="spVideoFile" accept="video/*" style="display:none;">`;
+      stage.after(panel);
+      const status = (m) => { $('spStatus').textContent = m; };
+
+      // ── Scenes: one script per scene, or a video ───────────────────────────────
+      const scenes = [{ kind: 'script', title: 'Scene 1', script: $('script').value || '', blob: null, url: null }];
+      let cur = 0;
+      const store = () => { const s = scenes[cur]; if (s && s.kind === 'script') s.script = $('spScript').value; };
+      function select(i, opts) {
+        if (!(opts && opts.noStore)) store();   // after a removal the box belongs to the removed scene: don't save it anywhere
+        cur = Math.max(0, Math.min(i, scenes.length - 1));
+        const s = scenes[cur];
+        $('spScriptCard').style.display = s.kind === 'script' ? '' : 'none';
+        $('spRec').style.display = s.kind === 'script' ? '' : 'none';
+        if (s.kind === 'script') { $('spScriptTitle').textContent = 'Script: ' + s.title; $('spScript').value = s.script; pushScript(); }
+        render();
+      }
+      function render() {
+        const box = $('spScenes'); box.innerHTML = '';
+        scenes.forEach((s, i) => {
+          const row = document.createElement('div'); row.className = 'sp-scene' + (i === cur ? ' cur' : '');
+          const t = document.createElement('div'); t.className = 't';
+          const b = document.createElement('b'); b.textContent = (i + 1) + '. ' + s.title;
+          const sub = document.createElement('span');
+          sub.textContent = s.kind === 'video' ? 'video' : (s.url ? 'script · recorded ✓ (tap ▶ to watch)' : 'script · not recorded yet');
+          t.append(b, sub); row.appendChild(t);
+          const btn = (label, title, act) => { const x = document.createElement('button'); x.textContent = label; x.title = title; x.onclick = (e) => { e.stopPropagation(); act(); }; row.appendChild(x); };
+          if (s.url) btn('▶', 'Watch', () => { const p = $('spPlayer'); p.src = s.url; p.style.display = 'block'; p.play().catch(() => {}); });
+          btn('↑', 'Move up', () => move(i, -1)); btn('↓', 'Move down', () => move(i, 1));
+          btn('✕', 'Remove', () => remove(i));
+          row.onclick = () => select(i);
+          box.appendChild(row);
+        });
+      }
+      function move(i, d) { const j = i + d; if (j < 0 || j >= scenes.length) return; store(); [scenes[i], scenes[j]] = [scenes[j], scenes[i]]; if (cur === i) cur = j; else if (cur === j) cur = i; render(); }
+      function remove(i) {
+        if (scenes.length === 1) { status('A video needs at least one scene.'); return; }
+        if (scenes[i].url && !confirm('Remove "' + scenes[i].title + '" and its recording?')) return;
+        if (i !== cur) store();                 // keep any edits to the scene you are on
+        scenes.splice(i, 1);
+        if (i < cur || cur >= scenes.length) cur = Math.max(0, cur - 1);
+        select(cur, { noStore: true });
+      }
+      $('spNewScene').onclick = () => { store(); scenes.push({ kind: 'script', title: 'Scene ' + (scenes.filter((s) => s.kind === 'script').length + 1), script: '', blob: null, url: null }); select(scenes.length - 1); $('spScript').focus(); };
+      $('spAddVideo').onclick = () => $('spVideoFile').click();
+      $('spVideoFile').onchange = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        store(); scenes.splice(cur + 1, 0, { kind: 'video', title: f.name, blob: f, url: URL.createObjectURL(f) });   // right after the selected scene
+        render(); status('Added "' + f.name + '" after scene ' + (cur + 1) + '. Use ↑ ↓ to move it.'); e.target.value = '';
+      };
+
+      // A finished recording belongs to the selected scene (recording again replaces it).
+      window.simpleSceneRecorded = (blob) => {
+        if (!document.documentElement.classList.contains('simple')) return false;
+        const s = scenes[cur]; if (!s || s.kind !== 'script') return false;
+        if (s.url) URL.revokeObjectURL(s.url);
+        s.blob = blob; s.url = URL.createObjectURL(blob); render();
+        const next = scenes.findIndex((x, i) => i > cur && x.kind === 'script' && !x.url);
+        status('Recorded "' + s.title + '". ' + (next >= 0 ? 'Next: tap scene ' + (next + 1) + ', or Save to video.' : 'Tap Save to video when you are done.'));
+        return true;
+      };
+
+      // ── Script box: this scene's script drives the teleprompter ───────────────
+      let typing = null;
+      function pushScript() { $('script').value = $('spScript').value; if (typeof buildPrompter === 'function') buildPrompter(); }
+      $('spScript').addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(pushScript, 300); });
+      // Import, Drive and the full studio set the studio's script box; copy it into this scene.
+      const origBuild = buildPrompter;
+      buildPrompter = function () {
+        const r = origBuild.apply(this, arguments);
+        const s = scenes[cur];
+        if (s && s.kind === 'script' && document.activeElement !== $('spScript') && $('script').value !== $('spScript').value) { $('spScript').value = $('script').value; s.script = $('script').value; }
+        renderPics(); return r;
+      };
+      $('spImport').onclick = () => $('scriptFile').click();
+      $('spDrive').onclick = () => {
+        const link = prompt('Paste the shared Google Drive folder link (script as a Google Doc, plus pictures):', $('driveLink').value || '');
+        if (!link) return;
+        let key = ''; try { key = window.BFX_GOOGLE_KEY || localStorage.getItem('bfx_google_key') || ''; } catch (_) {}
+        if (!key) { key = prompt('One-time step: paste your Google API key (kept on this device):') || ''; if (!key) return; $('driveKey').value = key.trim(); }
+        $('driveLink').value = link.trim(); loadFromDrive();
+      };
+      new MutationObserver(() => { const t = $('mediaStatus').textContent; if (t) status(t); }).observe($('mediaStatus'), { childList: true, characterData: true, subtree: true });
+
+      // Insert at the cursor: a cue goes right before the word it belongs to.
+      function insert(text) {
+        const ta = $('spScript'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a;
+        ta.value = ta.value.slice(0, a) + text + ta.value.slice(b); ta.focus();
+        ta.selectionStart = ta.selectionEnd = a + text.length; pushScript();
+      }
+      $('spPause').onclick = () => insert('[pause 2] ');
+      $('spCaption').onclick = () => { const w = prompt('Caption words (shown at the bottom of the video):'); if (w) insert('{text ll | ' + w.replace(/[{}|]/g, '') + '} '); };
+      let picKind = 'news';
+      $('spTop').onclick = () => { picKind = 'news'; $('spTop').classList.add('on'); $('spFull').classList.remove('on'); };
+      $('spFull').onclick = () => { picKind = 'full'; $('spFull').classList.add('on'); $('spTop').classList.remove('on'); };
+      $('spAddPics').onclick = () => $('mediaFiles').click();
+      $('mediaFiles').addEventListener('change', () => setTimeout(renderPics, 50));
+      function renderPics() {
+        const box = $('spPics'); box.innerHTML = '';
+        const names = Object.keys(mediaAssets || {});
+        if (!names.length) { const h = document.createElement('span'); h.style.cssText = 'color:#6b8299;font-size:12px;'; h.textContent = 'Add pictures, then tap one to put it in the script at the cursor.'; box.appendChild(h); return; }
+        names.forEach((n) => { const x = document.createElement('button'); x.textContent = '🖼 ' + n; x.title = 'Insert this picture at the cursor';
+          x.onclick = () => insert('{' + picKind + ' | ' + n + ' | ' + n.replace(/\.[a-z0-9]+$/i, '') + '} '); box.appendChild(x); });
+      }
+
+      // ── Effects: tap to play now (also while recording) ────────────────────────
+      const FAV = ['applause', 'laugh', 'lightbulb', 'mindblown', 'boing', 'womp', 'shake', 'closeup', 'emoji', 'facepalm', 'wink', 'think'];
+      const ICON = { applause: '👏', laugh: '😂', lightbulb: '💡', mindblown: '🤯', boing: '🦘', womp: '📉', shake: '💥', closeup: '🔍', emoji: '🎉', facepalm: '🤦', wink: '😉', think: '🤔' };
+      FAV.filter((n) => FX[n]).forEach((n) => { const x = document.createElement('button'); x.textContent = (ICON[n] || '✨') + ' ' + FX[n].label; x.onclick = () => fireEffect(n); $('spFx').appendChild(x); });
+
+      // ── Record ─────────────────────────────────────────────────────────────────
+      $('spRec').onclick = async () => {
+        if (recording) { $('recBtn').click(); return; }
+        if (!$('spScript').value.trim()) { status('Write or import this scene\'s script first.'); return; }
+        pushScript();
+        if ($('recBtn').disabled) { status('Turning on the camera…'); await startCamera(); }
+        if ($('recBtn').disabled) { status('The camera did not start. Allow the camera and microphone, then try again.'); return; }
+        $('spPlayer').pause(); $('spPlayer').style.display = 'none';
+        $('recBtn').click();
+      };
+      setInterval(() => { const live = typeof recording !== 'undefined' && recording; $('spRec').classList.toggle('live', !!live); $('spRec').textContent = live ? '■ Stop' : (scenes[cur] && scenes[cur].url ? '● Record this scene again' : '● Record this scene'); }, 300);
+
+      // ── Save: one scene saves as it is; several are spliced in order ────────────
+      $('spSave').onclick = () => {
+        if (recording) { status('Stop recording first.'); return; }
+        const ready = scenes.filter((s) => s.url);
+        const missing = scenes.filter((s) => s.kind === 'script' && !s.url).map((s) => s.title);
+        if (!ready.length) { status('Record a scene (or add a video) first.'); return; }
+        if (missing.length && !confirm('Not recorded yet: ' + missing.join(', ') + '. Save without them?')) return;
+        if (ready.length === 1) { window.saveVideoBlob(ready[0].blob); return; }
+        status('Putting ' + ready.length + ' scenes together, in order. This plays them through once…');
+        runAssembly({ list: ready.map((s) => ({ take: { scene: s.title }, att: { url: s.url } })), record: true, download: true });
+      };
+
+      // ── Simple by default; "More tools" opens the full studio (remembered) ─────
+      const back = document.createElement('button'); back.id = 'spBack'; back.textContent = '← Simple mode';
+      const bar = document.querySelector('.brandbar'); if (bar) bar.appendChild(back);
+      // The studio rearranges its own layout as it loads, so instead of guessing the structure: walk up from the
+      // stage to the page's main area and mark everything beside that path. In simple mode the marked parts hide.
+      function markAside() {
+        const wrap = document.querySelector('.wrap');
+        document.querySelectorAll('.sp-hide').forEach((e) => e.classList.remove('sp-hide'));
+        for (let node = panel; node && node !== wrap && node.parentElement; node = node.parentElement) {
+          for (const sib of node.parentElement.children) {
+            if (sib === node || sib === stage || sib === panel || /^(SCRIPT|STYLE)$/.test(sib.tagName)) continue;
+            sib.classList.add('sp-hide');
+          }
+        }
+      }
+      function setSimple(on) {
+        markAside();
+        document.documentElement.classList.toggle('simple', on);
+        try { localStorage.setItem('bfx_simple', on ? '1' : '0'); } catch (_) {}
+      }
+      addEventListener('load', () => setTimeout(markAside, 300));
+      setTimeout(markAside, 1500);
+      $('spMore').onclick = () => setSimple(false);
+      back.onclick = () => { setSimple(true); select(cur); };
+      let pref = null; try { pref = localStorage.getItem('bfx_simple'); } catch (_) {}
+      setSimple(pref !== '0' && !/[?&]full=1\b/.test(location.search));
+
+      // Phone: a clean picture by default (no badge, clock, ON AIR sign or microphone prop).
+      if (window.PHONE_MODE) ['optBadge', 'optAir', 'optMic'].forEach((id) => { const c = $(id); if (c && c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); } });
+
+      $('spScript').value = scenes[0].script; renderPics(); render();
+      window.simpleScenes = scenes;   // for the tests
     })();
   </script>
 </body>
