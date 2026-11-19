@@ -155,6 +155,8 @@
     .status { font-size: 12px; color: #8fb9d6; margin-top: 8px; min-height: 16px; }
     .hint { font-size: 11px; color: #6b8299; margin-top: 6px; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    /* The fun caption font for {pop} cues: Luckiest Guy, Apache License 2.0 (assets/fonts/LuckiestGuy-LICENSE.txt). */
+    @font-face { font-family: 'Luckiest Guy'; src: url('assets/fonts/LuckiestGuy-Regular.woff2') format('woff2'); font-display: block; }
 
     /* ── Phone mode (Ken, 2026-11-19): the stage fills the phone, tall when upright and wide when sideways; the
        teleprompter is a band of big words across the MIDDLE, the current word held in the reading box; the
@@ -1471,7 +1473,7 @@
       else if (camStream || (prerecorded && vid.readyState >= 2)) drawWebcam();
       drawLights();
       drawPlant(); drawMic(); drawLowerThird(); drawOnAir(); drawForeground();
-      drawScriptMedia(); drawScriptText(); drawEmojis();     // auto-created elements from the imported script
+      drawScriptMedia(); drawScriptText(); drawPopText(); drawEmojis();     // auto-created elements from the imported script
       drawEpisodeBadge();                      // persistent name / topic / Ep # / elapsed time
       drawTransition();                        // last, so it covers everything while it reveals the next shot
     }
@@ -1692,6 +1694,8 @@
       if (type === 'clear') return { anchor, type: 'clear' };
       if (type === 'cleartext') return { anchor, type: 'cleartext' };
       if (type === 'text') return { anchor, type: 'text', pos: head[1] || 'll', text: parts.slice(1).join(' | ') };
+      // {pop top|mid|bot | words}: a big, fun caption that bounces in (Ken, 2026-11-19: "fun and dynamic fonts").
+      if (type === 'pop') return { anchor, type: 'pop', pos: head[1] || 'top', text: parts.slice(1).join(' | ') };
       if (type === 'blurp') return { anchor, type: 'blurp', pos: head[1] || 'clow', text: parts.slice(1).join(' | ') };
       if (type === 'section') { const f3 = (parts[2] || '').trim().toLowerCase(), isStyle = /^(wipe|slide|pop|butterfly)$/.test(f3); return { anchor, type: 'section', title: parts[1] || '', sub: isStyle ? '' : (parts[2] || ''), style: isStyle ? f3 : '' }; }
       if (type === 'left' || type === 'right') return { anchor, type: type, asset: parts[1] || '', label: parts[2] || parts[1] || '' };
@@ -1722,11 +1726,12 @@
       }
       return d;
     }
-    function resetOverlays() { textOv = {}; mediaOv = null; emojiOv = []; }
+    function resetOverlays() { textOv = {}; popOv = {}; mediaOv = null; emojiOv = []; }
     function fireCuesUpTo(i) { while (cueFired < scriptCues.length && scriptCues[cueFired].anchor <= i) { applyScriptCue(scriptCues[cueFired]); cueFired++; } }
     function applyScriptCue(c) {
       const now = performance.now() / 1000;
-      if (c.type === 'cleartext') { textOv = {}; return; }
+      if (c.type === 'cleartext') { textOv = {}; popOv = {}; return; }
+      if (c.type === 'pop') { popOv[c.pos] = { text: c.text, t0: now, n: popCount++ }; return; }
       if (c.type === 'trans') { transV = { style: c.style, t0: performance.now() }; return; }
       if (c.type === 'clear') { mediaOv = null; return; }
       if (c.type === 'text') { textOv[c.pos] = { text: c.text, t0: now }; return; }
@@ -1897,6 +1902,41 @@
         ctx.fillText(o.text, ex, ey);
       }
       ctx.restore();
+    }
+    // ── Fun captions from {pop} cues: big words in a playful font with a thick outline and a bright gradient. Each
+    // bounces in (an overshoot), settles with a small wobble, then bobs gently; long lines wrap to fit the frame.
+    let popOv = {}, popCount = 0;
+    const POP_COLORS = [['#fff36b', '#ff9f1c'], ['#7ff6ff', '#22c3e6'], ['#ffa3e3', '#ff4fa0'], ['#d4ff7a', '#46d36a']];
+    try { document.fonts.load("80px 'Luckiest Guy'"); } catch (_) {}
+    function drawPopText() {
+      const W = cv.width, H = cv.height, now = performance.now() / 1000;
+      const anchorOf = (pos) => ({ top: [W / 2, H * 0.14], mid: [W / 2, H * 0.5], bot: [W / 2, H * 0.84] }[pos] || [W / 2, H * 0.14]);
+      for (const k in popOv) {
+        const o = popOv[k], age = now - o.t0, [cx, cy] = anchorOf(k);
+        let fs = Math.round(Math.min(W, H) * 0.115);
+        const lines = () => {                                              // wrap words to 88% of the frame width
+          ctx.font = fs + "px 'Luckiest Guy', 'Arial Black', sans-serif";
+          const out = []; let line = '';
+          for (const w of o.text.split(/\s+/)) { const tryL = line ? line + ' ' + w : w; if (ctx.measureText(tryL).width > W * 0.88 && line) { out.push(line); line = w; } else line = tryL; }
+          if (line) out.push(line); return out;
+        };
+        let ls = lines();
+        while (fs > 24 && ls.some((l) => ctx.measureText(l).width > W * 0.88)) { fs = Math.round(fs * 0.9); ls = lines(); }
+        const k1 = Math.min(1, age / 0.42), back = 1.70158;                  // ease-out-back: overshoot, then settle
+        const scale = Math.max(0.01, 1 + (back + 1) * Math.pow(k1 - 1, 3) + back * Math.pow(k1 - 1, 2));
+        const wobble = Math.sin(age * 9) * 0.06 * Math.exp(-age * 3), bob = Math.sin(age * 2.6) * fs * 0.035;
+        const lh = fs * 1.05, top = cy - (ls.length - 1) * lh / 2 + bob, [c1, c2] = POP_COLORS[o.n % POP_COLORS.length];
+        ctx.save(); ctx.translate(cx, top); ctx.rotate(wobble); ctx.scale(scale, scale);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.font = fs + "px 'Luckiest Guy', 'Arial Black', sans-serif";
+        ls.forEach((l, i) => {
+          const y = i * lh, g = ctx.createLinearGradient(0, y - fs / 2, 0, y + fs / 2); g.addColorStop(0, c1); g.addColorStop(1, c2);
+          ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = fs * 0.25; ctx.shadowOffsetY = fs * 0.08;
+          ctx.lineWidth = fs * 0.17; ctx.strokeStyle = '#1b0a33'; ctx.strokeText(l, 0, y);
+          ctx.shadowColor = 'transparent'; ctx.fillStyle = g; ctx.fillText(l, 0, y);
+        });
+        ctx.restore();
+      }
     }
     function drawScriptText() {
       const now = performance.now() / 1000, H = cv.height, POS = TXT_POS();
@@ -2199,7 +2239,10 @@
       hopeful:    { root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 5, 3], bpm: 96, bright: 0.75 },
       reflective: { root: 55, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 3, 4, 0], bpm: 72, bright: 0.40 },
       tense:      { root: 57, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4], bpm: 104, bright: 0.30 },
-      triumphant: { root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 4], bpm: 112, bright: 0.90 }
+      triumphant: { root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 4], bpm: 112, bright: 0.90 },
+      // Game (Ken, 2026-11-19): upbeat game-play music. A steady four-on-the-floor beat, claps on 2 and 4, off-beat
+      // hats, a bass on the I-V-vi-IV loop, and a catchy lead read from z = x*y, in two parts that swap every 8 bars.
+      game:       { root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 5, 3], bpm: 124, bright: 0.85, game: true }
     };
     function motifFromName(name) { let h = 0; const s = (name || '').toLowerCase(); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff; const len = 4 + (h % 3), m = []; let v = h || 1; for (let i = 0; i < len; i++) { m.push(v % 7); v = Math.floor(v / 3) + 1; } return m; }
     const Score = (function () {
@@ -2212,7 +2255,27 @@
       function piano(freq, t, dur, gain) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(6500, freq * 6), t); lp.frequency.exponentialRampToValueAtTime(Math.max(500, freq * 1.7), t + Math.min(0.5, dur)); const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.006); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * 0.28), t + Math.min(0.35, dur * 0.4)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); lp.connect(g); g.connect(master); for (const p of [[1, 'triangle', 1], [2, 'sine', 0.32], [3, 'sine', 0.11]]) { const o = ac.createOscillator(); o.type = p[1]; o.frequency.value = freq * p[0] * (p[0] > 1 ? 1.002 : 1); const og = ac.createGain(); og.gain.value = p[2]; o.connect(og); og.connect(lp); o.start(t); o.stop(t + dur + 0.05); } }
       function tsynth(freq, t, dur, gain) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(4200, freq * 4), t); lp.frequency.exponentialRampToValueAtTime(Math.max(400, freq * 1.2), t + dur); lp.Q.value = 6; const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = freq; o.connect(lp); lp.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03); }
       function perc(t, kick) { if (kick) { const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12); const g = ac.createGain(); g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.16); } else { const n = ac.createBufferSource(), b = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.03), ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1); n.buffer = b; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000; const g = ac.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04); n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + 0.05); } }
+      // ── The game style: one beat of a 16-step groove, every sound synthesized (no audio files) ──────────────
+      function noiseHit(t, dur, gain, type, freq) { const n = ac.createBufferSource(), b = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1); n.buffer = b; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + dur + 0.01); }
+      function kick(t) { const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.13); const g = ac.createGain(); g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.2); }
+      function square(freq, t, dur, gain, cutoff) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = freq; const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(lp); lp.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03); }
+      let phrase = [];                                   // the lead's 2-bar phrase, read from z = x*y, repeated so it sticks
+      function gameBeat(t, spb, ch) {
+        const s16 = spb / 4, part = Math.floor(bar / 8) % 2;            // part A, then part B, every 8 bars
+        if (beat === 0 && bar % 4 === 0) { phrase = []; for (let k = 0; k < 16; k++) phrase.push(manifoldNote(12)); }   // a new phrase every 4 bars, played twice
+        kick(t);                                                         // four on the floor
+        if (beat === 1 || beat === 3) noiseHit(t, 0.13, 0.16, 'bandpass', 1500);   // clap on 2 and 4
+        noiseHit(t + s16 * 2, 0.045, part ? 0.07 : 0.05, 'highpass', 7500);       // off-beat hat
+        if (part) { noiseHit(t + s16, 0.03, 0.025, 'highpass', 9000); noiseHit(t + s16 * 3, 0.03, 0.025, 'highpass', 9000); }
+        const root = hz(ch[0] - 24), deco = hz(manifoldNote(-24));                // bass: the chord root, decorated by the walk
+        square(root, t, s16 * 1.6, 0.11, 600); square(beat % 2 ? deco : root, t + s16 * 3, s16 * 0.9, 0.08, 600);
+        const slot = (bar % 2) * 8 + beat * 2, lift = part ? 12 : 0;            // lead: 8th notes, with a rest pattern for bounce
+        const rhythm = [1, 0, 1, 1, 0, 1, 1, 0];
+        for (let e = 0; e < 2; e++) { const k = (beat * 2 + e) % 8; if (rhythm[k] && phrase.length) square(hz(phrase[(slot + e) % 16] + lift), t + e * s16 * 2, s16 * 1.7, 0.055, 2600); }
+        if (part) for (let q = 0; q < 4; q++) tsynth(hz(ch[q % 3] + 12), t + q * s16, s16 * 0.9, 0.028);   // part B: a bouncing arpeggio
+      }
       function tick() { const a = ctx(), spb = 60 / cfg.bpm; while (nextT < a.currentTime + 0.25) { const t = nextT, deg = cfg.prog[bar % cfg.prog.length], ch = chord(deg);
+        if (cfg.game) { gameBeat(t, spb, ch); beat = (beat + 1) % 4; if (beat === 0) bar++; nextT += spb; continue; }
         if (beat === 0 && intensity > 0.02) { ch.forEach((m, k) => piano(hz(m), t + k * 0.045, spb * 3.4, 0.05 * (0.6 + cfg.bright * 0.4))); voice(hz(ch[0] - 12), t, spb * 2, 'sine', 0.06); }
         if (intensity > 0.3 && beat % 2 === 0) { piano(hz(manifoldNote(12)), t, spb * 1.3, 0.06 * (0.6 + cfg.bright * 0.4)); }
         if (intensity > 0.6) { const md = cfg.scale[((motif[mi % motif.length]) % 7 + 7) % 7]; piano(hz(cfg.root + md + 24), t + spb * 0.5, spb * 0.9, 0.032 * (0.6 + cfg.bright * 0.4)); mi++; }
@@ -2222,7 +2285,7 @@
         if (intensity > 0.55 && beat % 2 === 1) perc(t, false);
         beat = (beat + 1) % 4; if (beat === 0) bar++; nextT += spb; } }
       return {
-        start(m) { if (MUSIC[m]) cfg = MUSIC[m]; const a = ctx(); on = true; bar = 0; beat = 0; nextT = a.currentTime + 0.1; if (!timer) timer = setInterval(tick, 60); },
+        start(m) { if (MUSIC[m]) cfg = MUSIC[m]; const a = ctx(); on = true; bar = 0; beat = 0; mphase = 0; phrase = []; nextT = a.currentTime + 0.1; if (!timer) timer = setInterval(tick, 60); },
         stop() { on = false; if (timer) { clearInterval(timer); timer = null; } if (ac && master) { const t = ac.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(0.0001, t + 0.4); setTimeout(() => { try { master.gain.value = 0.45; } catch (_) {} }, 480); } },
         setMood(m) { if (MUSIC[m]) cfg = MUSIC[m]; },
         setIntensity(x) { intensity = Math.max(0, Math.min(1, x)); },
@@ -4247,12 +4310,13 @@
           <textarea id="spScript" spellcheck="true" placeholder="Write or paste this scene's script. Put a picture's button right before the word it goes with."></textarea>
           <div class="hint" style="margin:0 0 6px;">Click in the script where it should happen, then tap a button. Everything fires as you read that word.</div>
           <div class="sp-row"><button id="spPause" title="Insert a pause">⏸ Pause</button><button id="spCaption" title="Insert an on-screen caption">💬 Caption</button>
-            <button id="spBack2Me" title="Take the picture or video away and come back to the camera">📷 Back to me</button></div>
+            <button id="spBack2Me" title="Take the picture or video away and come back to the camera">📷 Back to me</button>
+            <button id="spPop" title="Big, fun words that bounce in at the top of the video">🎉 Fun caption</button></div>
           <div class="sp-row" style="margin-top:6px;"><span class="sp-lbl">Transition:</span>
             <button data-trans="fade">Fade</button><button data-trans="wipe">Wipe</button><button data-trans="flash">Flash</button><button id="spTitleCard">Title card</button></div>
           <div class="sp-row" style="margin-top:6px;"><span class="sp-lbl">Music:</span>
             <button data-music="warm">Warm</button><button data-music="hopeful">Hopeful</button><button data-music="reflective">Reflective</button>
-            <button data-music="tense">Tense</button><button data-music="triumphant">Triumphant</button><button data-music="off">Off</button></div>
+            <button data-music="tense">Tense</button><button data-music="triumphant">Triumphant</button><button data-music="game">Game</button><button data-music="off">Off</button></div>
           <div class="sp-row" style="margin-top:6px;"><button id="spAddPics">+ Add pictures or videos</button><span class="sp-lbl">They show:</span>
             <button id="spTop" class="on">Top</button><button id="spFull">Full screen</button></div>
           <div class="sp-row" id="spPics" style="margin-top:6px;"></div></div>
@@ -4371,6 +4435,7 @@
       }
       $('spPause').onclick = () => insert('[pause 2] ');
       $('spBack2Me').onclick = () => insert('{clear} ');
+      $('spPop').onclick = () => { const w = prompt('Fun caption words (big, bouncy, at the top):'); if (w) insert('{pop top | ' + w.replace(/[{}|]/g, '') + '} '); };
       document.querySelectorAll('#spScriptCard [data-trans]').forEach((x) => { x.onclick = () => insert('{transition | ' + x.dataset.trans + '} '); });
       $('spTitleCard').onclick = () => { const t = prompt('Title card words (a full-screen card with a transition):'); if (t) insert('{section | ' + t.replace(/[{}|]/g, '') + ' | wipe} '); };
       document.querySelectorAll('#spScriptCard [data-music]').forEach((x) => { x.onclick = () => insert('{music | ' + x.dataset.music + '} '); });
