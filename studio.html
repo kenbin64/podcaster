@@ -434,18 +434,6 @@
           </div>
           <div id="epPick" class="btns" style="flex-wrap:wrap;"></div>
         </div>
-        <!-- Google Drive (Ken, 2026-11-19): a shared folder holds the script (a Google Doc) and the assets. -->
-        <div style="margin-top:10px;padding:9px;border:1px solid #2a3550;border-radius:8px;background:#0e1626;">
-          <div style="color:#9fd9ff;font-weight:700;font-size:13px;margin-bottom:7px;">☁ Open from Google Drive: script (a Google Doc) + graphics in one shared folder</div>
-          <div class="btns" style="align-items:stretch;">
-            <input type="text" id="driveLink" placeholder="Paste the shared folder link" style="flex:1;min-width:0;" spellcheck="false" autocomplete="off">
-            <button id="driveLoad" class="primary">☁ Load</button>
-          </div>
-          <div class="btns" id="driveKeyRow" style="display:none;margin-top:6px;align-items:stretch;">
-            <input type="text" id="driveKey" placeholder="Google API key (one time; kept on this device)" style="flex:1;min-width:0;" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="hint">In Drive: Share the folder as <b>Anyone with the link: Viewer</b>, then copy its link. The Google Doc becomes the script; images and clips become the graphics, matched by file name.</div>
-        </div>
         <div class="btns" style="margin-top:6px;align-items:stretch;">
           <input type="text" id="folderPath" placeholder="…or paste a folder path, e.g. C:\Podcasts\episode-01" style="flex:1;min-width:0;" spellcheck="false">
           <button id="loadPath" class="primary">📁 Load from path</button>
@@ -1457,6 +1445,26 @@
     function isEval() { return false; }
     function isPro() { return true; }
     function canEdit() { return true; }
+    // A quick transition from a {transition} cue: it starts fully covering the frame and uncovers what comes next,
+    // so the cut to a picture, a video or back to camera happens unseen. Recorded with everything else.
+    let transV = null;
+    const TRANS_MS = 650;
+    function drawTransition() {
+      if (!transV) return;
+      const k = (performance.now() - transV.t0) / TRANS_MS;
+      if (k >= 1) { transV = null; return; }
+      const W = cv.width, H = cv.height, ease = 1 - Math.pow(1 - k, 2);
+      ctx.save();
+      if (transV.style === 'wipe') {                    // a dark panel slides off to the right, teal edge leading
+        const x = W * ease;
+        ctx.fillStyle = '#05070c'; ctx.fillRect(x, 0, W - x, H);
+        ctx.fillStyle = 'rgba(45,212,191,0.9)'; ctx.fillRect(x - 6, 0, 12, H);
+      } else {                                          // fade from black, or from a white flash
+        ctx.globalAlpha = 1 - ease; ctx.fillStyle = transV.style === 'flash' ? '#ffffff' : '#000000'; ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+    }
+    window.__transitionActive = () => !!transV;   // for the tests
     function renderComposite() {
       drawBackdrop(); drawArt();
       if (segOn && segmenter && segmenter.hasFrame) drawSegPerson();
@@ -1465,6 +1473,7 @@
       drawPlant(); drawMic(); drawLowerThird(); drawOnAir(); drawForeground();
       drawScriptMedia(); drawScriptText(); drawEmojis();     // auto-created elements from the imported script
       drawEpisodeBadge();                      // persistent name / topic / Ep # / elapsed time
+      drawTransition();                        // last, so it covers everything while it reveals the next shot
     }
     // End screen: a held "coming up next" card for the outro, with a soft theme reprise.
     function drawEndScreen(x, t, dur, cfg) {
@@ -1667,7 +1676,8 @@
     // A cue fires when the marquee reaches the word right after it. Images come from "Import media";
     // until one is added, a labelled placeholder holds the spot so timing and layout are real.
     function parseScript(raw) {
-      const words = [], cues = [], re = /\{[^}]*\}|\[[^\]]*\]|\S+/g; let m;
+      // A word stops at "{" or "[", so a cue typed right after a word ("back.{clear}") is still a cue.
+      const words = [], cues = [], re = /\{[^}]*\}|\[[^\]]*\]|[^\s{[]+/g; let m;
       while ((m = re.exec(raw)) !== null) {
         const tok = m[0];
         if (tok[0] === '{' && tok[tok.length - 1] === '}') { const c = parseCue(tok.slice(1, -1), words.length); if (c) cues.push(c); }
@@ -1689,6 +1699,9 @@
       if (type === 'fx' || type === 'sfx' || type === 'effect') return { anchor, type: 'fx', name: (head[1] || (parts[1] || '').trim() || '').toLowerCase() };
       if (type === 'emoji') return { anchor, type: 'emoji', pos: head[1] || 'ur', text: parts.slice(1).join(' | ') };
       if (type === 'music' || type === 'score') return { anchor, type: 'music', mood: (head[1] || (parts[1] || '').trim() || '').toLowerCase() };
+      // {transition | fade|wipe|flash}: a quick transition with no title card (Ken, 2026-11-19). It reveals what
+      // comes next, so put it right before a picture or video cue (or before {clear}, to come back to camera).
+      if (type === 'transition' || type === 'trans') { const s = (head[1] || (parts[1] || '').trim() || 'fade').toLowerCase(); return { anchor, type: 'trans', style: /^(fade|wipe|flash)$/.test(s) ? s : 'fade' }; }
       if (type === 'theme' || type === 'motif') return { anchor, type: 'theme', name: (parts.slice(1).join(' ').trim() || head.slice(1).join(' ')) };
       return null;
     }
@@ -1714,6 +1727,7 @@
     function applyScriptCue(c) {
       const now = performance.now() / 1000;
       if (c.type === 'cleartext') { textOv = {}; return; }
+      if (c.type === 'trans') { transV = { style: c.style, t0: performance.now() }; return; }
       if (c.type === 'clear') { mediaOv = null; return; }
       if (c.type === 'text') { textOv[c.pos] = { text: c.text, t0: now }; return; }
       if (c.type === 'blurp') { textOv[c.pos] = { text: c.text, t0: now, bubble: true }; return; }
@@ -1991,65 +2005,6 @@
       $('mediaStatus').textContent = 'Linked ' + folder + ': ' + report + '  (' + nImg + ' graphic file(s), ' + nVid + ' clip(s) loaded for the cues.)';
       e.target.value = '';
     });
-
-    // ── Google Drive (Ken, 2026-11-19): read a SHARED folder ("Anyone with the link: Viewer") with Google's Drive
-    // API and a browser API key. A Google Doc in the folder becomes the script (exported as plain text and named
-    // *.cuescript.txt so it wins); images, SVGs and clips become the graphics, keyed by file name exactly as in
-    // "Open project folder". The files are then handed to that same loader, so both paths behave the same.
-    // The key is kept on this device; on the website it can be built in (window.BFX_GOOGLE_KEY, restricted to the
-    // site's address in Google Cloud). window.BFX_DRIVE_API exists only so tests can stand in for Google.
-    function driveFolderId(link) {
-      const m = String(link).match(/\/folders\/([\w-]{10,})/) || String(link).match(/[?&]id=([\w-]{10,})/) || String(link).match(/^([\w-]{20,})$/);
-      return m ? m[1] : null;
-    }
-    function driveKey() {
-      let k = window.BFX_GOOGLE_KEY || '';
-      try { k = k || localStorage.getItem('bfx_google_key') || ''; } catch (_) {}
-      const typed = $('driveKey') && $('driveKey').value.trim();
-      if (typed) { k = typed; try { localStorage.setItem('bfx_google_key', typed); } catch (_) {} }
-      return k;
-    }
-    async function driveGet(url, as) {
-      const r = await fetch(url);
-      if (!r.ok) {
-        const why = r.status === 403 || r.status === 404 ? 'not found or not shared. Share the folder as "Anyone with the link: Viewer", and check the API key.'
-          : r.status === 400 ? 'the API key was refused. Check it in Google Cloud (Drive API enabled, key allowed for this site).' : 'Google said ' + r.status + '.';
-        throw new Error(why);
-      }
-      return as === 'json' ? r.json() : as === 'text' ? r.text() : r.blob();
-    }
-    async function loadFromDrive() {
-      const say = (m) => { $('mediaStatus').textContent = m; };
-      const id = driveFolderId($('driveLink').value.trim());
-      if (!id) { say('Paste the shared folder link from Google Drive (it contains /folders/).'); return; }
-      const key = driveKey();
-      if (!key) { $('driveKeyRow').style.display = 'flex'; say('One-time step: paste your Google API key below, then tap Load again.'); return; }
-      const API = window.BFX_DRIVE_API || 'https://www.googleapis.com/drive/v3';
-      const k = '&key=' + encodeURIComponent(key);
-      try {
-        say('Reading the Drive folder…');
-        const list = await driveGet(API + '/files?q=' + encodeURIComponent("'" + id + "' in parents and trashed=false") + '&fields=files(id,name,mimeType)&pageSize=200' + k, 'json');
-        const files = [];
-        for (const f of (list.files || [])) {
-          if (f.mimeType === 'application/vnd.google-apps.document') {          // the script
-            const text = (await driveGet(API + '/files/' + f.id + '/export?mimeType=text%2Fplain' + k, 'text')).replace(/^﻿/, '');
-            files.push(new File([text], f.name.replace(/[\\/:*?"<>|]/g, '_') + '.cuescript.txt', { type: 'text/plain' }));
-          } else if (IMG_RE.test(f.name) || VID_RE.test(f.name) || /\.(txt|md)$/i.test(f.name)) {   // graphics, clips, or a plain script file
-            say('Downloading ' + f.name + '…');
-            const blob = await driveGet(API + '/files/' + f.id + '?alt=media' + k, 'blob');
-            files.push(new File([blob], f.name, { type: blob.type || f.mimeType }));
-          }
-        }
-        if (!files.length) { say('That folder has no Google Doc, images or clips the studio can use.'); return; }
-        const dt = new DataTransfer(); files.forEach((f) => dt.items.add(f));
-        window.__linkLabel = 'your Google Drive folder';   // so the status reads "Linked your Google Drive folder: ..."
-        $('projFolder').files = dt.files;
-        $('projFolder').dispatchEvent(new Event('change', { bubbles: true }));
-        $('driveKeyRow').style.display = 'none';
-      } catch (e) { say('Could not read the Drive folder: ' + e.message); }
-    }
-    $('driveLoad').addEventListener('click', loadFromDrive);
-    window.driveFolderId = driveFolderId;   // for the tests
 
     // Type or paste a folder PATH and load it. In the desktop build the loopback server reads the folder
     // via Node (/readproject) and streams each asset by absolute path (/projectfile). In a plain browser
@@ -4254,6 +4209,7 @@
     .sp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .sp-row button, .sp-big { background: #13202e; border: 1px solid #2a3b4d; color: #dfe9f5; border-radius: 9px; padding: 9px 12px; font-size: 14px; cursor: pointer; }
     .sp-row button.on { border-color: #2dd4bf; color: #fff; background: #103a3a; }
+    .sp-lbl { color: #8fa6bd; font-size: 12px; margin: 0 2px 0 4px; }
     .sp-big { width: 100%; padding: 15px; font-size: 18px; font-weight: 800; margin-top: 8px; }
     .sp-rec { background: #6b1d2a; border-color: #b4344d; color: #fff; }
     .sp-rec.live { background: #b4344d; }
@@ -4282,10 +4238,17 @@
           <div class="sp-row"><button id="spNewScene">+ New scene</button><button id="spAddVideo">+ Add a video</button></div>
           <video id="spPlayer" controls playsinline></video></div>
         <div class="sp-card" id="spScriptCard"><h3 id="spScriptTitle">Script</h3>
-          <div class="sp-row"><button id="spImport">⤓ Import .txt / .md</button><button id="spDrive">☁ Google Drive</button></div>
+          <div class="sp-row"><button id="spOpenFiles" title="Pick the script (.txt or .md) and its pictures and videos together">📂 Open files</button><button id="spImport">⤓ Import script only</button></div>
           <textarea id="spScript" spellcheck="true" placeholder="Write or paste this scene's script. Put a picture's button right before the word it goes with."></textarea>
+          <div class="hint" style="margin:0 0 6px;">Click in the script where it should happen, then tap a button. Everything fires as you read that word.</div>
           <div class="sp-row"><button id="spPause" title="Insert a pause">⏸ Pause</button><button id="spCaption" title="Insert an on-screen caption">💬 Caption</button>
-            <button id="spAddPics">+ Add pictures</button><span style="color:#8fa6bd;font-size:12px;margin-left:4px;">Pictures show:</span>
+            <button id="spBack2Me" title="Take the picture or video away and come back to the camera">📷 Back to me</button></div>
+          <div class="sp-row" style="margin-top:6px;"><span class="sp-lbl">Transition:</span>
+            <button data-trans="fade">Fade</button><button data-trans="wipe">Wipe</button><button data-trans="flash">Flash</button><button id="spTitleCard">Title card</button></div>
+          <div class="sp-row" style="margin-top:6px;"><span class="sp-lbl">Music:</span>
+            <button data-music="warm">Warm</button><button data-music="hopeful">Hopeful</button><button data-music="reflective">Reflective</button>
+            <button data-music="tense">Tense</button><button data-music="triumphant">Triumphant</button><button data-music="off">Off</button></div>
+          <div class="sp-row" style="margin-top:6px;"><button id="spAddPics">+ Add pictures or videos</button><span class="sp-lbl">They show:</span>
             <button id="spTop" class="on">Top</button><button id="spFull">Full screen</button></div>
           <div class="sp-row" id="spPics" style="margin-top:6px;"></div></div>
         <div class="sp-card"><h3>Effects</h3><div class="sp-row" id="spFx"></div></div>
@@ -4293,7 +4256,8 @@
         <button class="sp-big sp-save" id="spSave">💾 Save to video</button>
         <div id="spStatus"></div>
         <button class="sp-more" id="spMore">More tools (the full studio) ▾</button>
-        <input type="file" id="spVideoFile" accept="video/*" style="display:none;">`;
+        <input type="file" id="spVideoFile" accept="video/*" style="display:none;">
+        <input type="file" id="spFiles" multiple accept=".txt,.md,.markdown,text/plain,text/markdown,image/*,video/*" style="display:none;">`;
       stage.after(panel);
       const status = (m) => { $('spStatus').textContent = m; };
 
@@ -4359,7 +4323,7 @@
       let typing = null;
       function pushScript() { $('script').value = $('spScript').value; if (typeof buildPrompter === 'function') buildPrompter(); }
       $('spScript').addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(pushScript, 300); });
-      // Import, Drive and the full studio set the studio's script box; copy it into this scene.
+      // Import, Open files and the full studio set the studio's script box; copy it into this scene.
       const origBuild = buildPrompter;
       buildPrompter = function () {
         const r = origBuild.apply(this, arguments);
@@ -4368,22 +4332,31 @@
         renderPics(); return r;
       };
       $('spImport').onclick = () => $('scriptFile').click();
-      $('spDrive').onclick = () => {
-        const link = prompt('Paste the shared Google Drive folder link (script as a Google Doc, plus pictures):', $('driveLink').value || '');
-        if (!link) return;
-        let key = ''; try { key = window.BFX_GOOGLE_KEY || localStorage.getItem('bfx_google_key') || ''; } catch (_) {}
-        if (!key) { key = prompt('One-time step: paste your Google API key (kept on this device):') || ''; if (!key) return; $('driveKey').value = key.trim(); }
-        $('driveLink').value = link.trim(); loadFromDrive();
+      // Open files (Ken, 2026-11-19: "just have an upload"): pick the script and its pictures and videos in one go,
+      // from a phone or a computer. They go through the same loader as "Open project folder": the .txt or .md
+      // becomes this scene's script, everything else becomes picture and video buttons, matched by file name.
+      $('spOpenFiles').onclick = () => $('spFiles').click();
+      $('spFiles').onchange = (e) => {
+        const files = [...e.target.files]; if (!files.length) return;
+        const dt = new DataTransfer(); files.forEach((f) => dt.items.add(f));
+        window.__linkLabel = 'your files';
+        $('projFolder').files = dt.files; $('projFolder').dispatchEvent(new Event('change', { bubbles: true }));
+        setTimeout(renderPics, 100); e.target.value = '';
       };
       new MutationObserver(() => { const t = $('mediaStatus').textContent; if (t) status(t); }).observe($('mediaStatus'), { childList: true, characterData: true, subtree: true });
 
       // Insert at the cursor: a cue goes right before the word it belongs to.
       function insert(text) {
         const ta = $('spScript'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a;
+        if (a > 0 && !/\s/.test(ta.value[a - 1])) text = ' ' + text;   // never glue a cue onto the word before it
         ta.value = ta.value.slice(0, a) + text + ta.value.slice(b); ta.focus();
         ta.selectionStart = ta.selectionEnd = a + text.length; pushScript();
       }
       $('spPause').onclick = () => insert('[pause 2] ');
+      $('spBack2Me').onclick = () => insert('{clear} ');
+      document.querySelectorAll('#spScriptCard [data-trans]').forEach((x) => { x.onclick = () => insert('{transition | ' + x.dataset.trans + '} '); });
+      $('spTitleCard').onclick = () => { const t = prompt('Title card words (a full-screen card with a transition):'); if (t) insert('{section | ' + t.replace(/[{}|]/g, '') + ' | wipe} '); };
+      document.querySelectorAll('#spScriptCard [data-music]').forEach((x) => { x.onclick = () => insert('{music | ' + x.dataset.music + '} '); });
       $('spCaption').onclick = () => { const w = prompt('Caption words (shown at the bottom of the video):'); if (w) insert('{text ll | ' + w.replace(/[{}|]/g, '') + '} '); };
       let picKind = 'news';
       $('spTop').onclick = () => { picKind = 'news'; $('spTop').classList.add('on'); $('spFull').classList.remove('on'); };
@@ -4393,8 +4366,8 @@
       function renderPics() {
         const box = $('spPics'); box.innerHTML = '';
         const names = Object.keys(mediaAssets || {});
-        if (!names.length) { const h = document.createElement('span'); h.style.cssText = 'color:#6b8299;font-size:12px;'; h.textContent = 'Add pictures, then tap one to put it in the script at the cursor.'; box.appendChild(h); return; }
-        names.forEach((n) => { const x = document.createElement('button'); x.textContent = '🖼 ' + n; x.title = 'Insert this picture at the cursor';
+        if (!names.length) { const h = document.createElement('span'); h.style.cssText = 'color:#6b8299;font-size:12px;'; h.textContent = 'Add pictures or videos, then tap one to put it in the script at the cursor. A video plays while you keep talking.'; box.appendChild(h); return; }
+        names.forEach((n) => { const x = document.createElement('button'); const isVid = /\.(webm|mp4|mov|m4v|ogv)$/i.test(n); x.textContent = (isVid ? '🎞 ' : '🖼 ') + n; x.title = isVid ? 'Insert this video at the cursor: it plays while you keep talking' : 'Insert this picture at the cursor';
           x.onclick = () => insert('{' + picKind + ' | ' + n + ' | ' + n.replace(/\.[a-z0-9]+$/i, '') + '} '); box.appendChild(x); });
       }
 
