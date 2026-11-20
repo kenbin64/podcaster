@@ -1578,7 +1578,8 @@
     let _takeText = null, takes = [], takeMode = false, curTake = -1, slateActive = false, slateStart = 0, slateCfg = null; const SLATE_DUR = 2.2;
     let asmActive = false, asmBusy = false, asmAbort = false, _asmCtx = null, _asmSrc = null, _asmDest = null;   // assembly (stitch chosen takes)
     let directorOn = false, directorIdx = -1, directorReadyMs = 0;   // AI Director: auto-roll each take when delivery is in the zone
-    let scriptCues = [], cueFired = 0, textOv = {}, mediaOv = null, channels = {};
+    let scriptCues = [], cueFired = 0, textOv = {}, mediaOv = null, mediaHold = null, channels = {};
+    const loopFrame = document.createElement('canvas');   // the last frame of a looping clip, shown while it rewinds
     let dirNote = '', dirNoteT = 0, pauseUntil = 0, tempoMul = 1, coachIntensity = 0, manualDirAnchors = new Set();
     let camCueUntil = 0;          // while > now, the lens label shows EYES TO CAMERA (driven by [to camera] directives)
     let coachEmote = null;        // assigned by the coach IIFE so directions can drive the head
@@ -1592,7 +1593,7 @@
       // 0..1); y = its LAYER (direction first, then media, then text). z = x*y is its address. Sorting
       // by (x, y) puts the dialog and every element on ONE synced timeline, firing in a stable order
       // at each word, so dialog and direction are always in step.
-      const totalW = Math.max(1, parsed.words.length), LAYER = { dir: 1, section: 2, news: 2, full: 2, left: 2, right: 2, clear: 2, blurp: 3, text: 3, cleartext: 3 };
+      const totalW = Math.max(1, parsed.words.length), LAYER = { dir: 1, section: 2, news: 2, full: 2, left: 2, right: 2, clear: 2, blurp: 3, text: 3, cleartext: 3, pop: 3, emoji: 3 };   // pop/emoji are text: they fire after a {cleartext} written before them
       scriptCues.forEach((c) => { c.x = c.anchor / totalW; c.y = LAYER[c.type] || 2; c.z = c.x * c.y; });
       scriptCues.sort((a, b) => a.anchor - b.anchor || a.y - b.y);
       let _sIdx = 0; const _sTot = scriptCues.filter((c) => c.type === 'section').length;   // number the transition pages: PART k OF n
@@ -1698,8 +1699,10 @@
       if (type === 'pop') return { anchor, type: 'pop', pos: head[1] || 'top', text: parts.slice(1).join(' | ') };
       if (type === 'blurp') return { anchor, type: 'blurp', pos: head[1] || 'clow', text: parts.slice(1).join(' | ') };
       if (type === 'section') { const f3 = (parts[2] || '').trim().toLowerCase(), isStyle = /^(wipe|slide|pop|butterfly)$/.test(f3); return { anchor, type: 'section', title: parts[1] || '', sub: isStyle ? '' : (parts[2] || ''), style: isStyle ? f3 : '' }; }
-      if (type === 'left' || type === 'right') return { anchor, type: type, asset: parts[1] || '', label: parts[2] || parts[1] || '' };
-      if (type === 'news' || type === 'full' || type === 'img') return { anchor, type: type === 'img' ? 'full' : type, asset: parts[1] || '', label: parts[2] || parts[1] || '' };
+      // A video can start partway in: {full | clip.webm @6} plays clip.webm from 6 seconds (a trim, no editor needed).
+      const at = (s) => { const m = /^(.*?)\s*@\s*(\d+(?:\.\d+)?)\s*s?$/.exec((s || '').trim()); return m ? { asset: m[1], from: parseFloat(m[2]) } : { asset: (s || '').trim(), from: 0 }; };
+      if (type === 'left' || type === 'right') { const a = at(parts[1]); return { anchor, type: type, asset: a.asset, from: a.from, label: parts[2] || a.asset }; }
+      if (type === 'news' || type === 'full' || type === 'img') { const a = at(parts[1]); return { anchor, type: type === 'img' ? 'full' : type, asset: a.asset, from: a.from, label: parts[2] || a.asset }; }
       if (type === 'fx' || type === 'sfx' || type === 'effect') return { anchor, type: 'fx', name: (head[1] || (parts[1] || '').trim() || '').toLowerCase() };
       if (type === 'emoji') return { anchor, type: 'emoji', pos: head[1] || 'ur', text: parts.slice(1).join(' | ') };
       if (type === 'music' || type === 'score') return { anchor, type: 'music', mood: (head[1] || (parts[1] || '').trim() || '').toLowerCase() };
@@ -1726,14 +1729,14 @@
       }
       return d;
     }
-    function resetOverlays() { textOv = {}; popOv = {}; mediaOv = null; emojiOv = []; }
+    function resetOverlays() { textOv = {}; popOv = {}; mediaOv = null; mediaHold = null; emojiOv = []; }
     function fireCuesUpTo(i) { while (cueFired < scriptCues.length && scriptCues[cueFired].anchor <= i) { applyScriptCue(scriptCues[cueFired]); cueFired++; } }
     function applyScriptCue(c) {
       const now = performance.now() / 1000;
       if (c.type === 'cleartext') { textOv = {}; popOv = {}; return; }
       if (c.type === 'pop') { popOv[c.pos] = { text: c.text, t0: now, n: popCount++ }; return; }
       if (c.type === 'trans') { transV = { style: c.style, t0: performance.now() }; return; }
-      if (c.type === 'clear') { mediaOv = null; return; }
+      if (c.type === 'clear') { mediaOv = null; mediaHold = null; return; }
       if (c.type === 'text') { textOv[c.pos] = { text: c.text, t0: now }; return; }
       if (c.type === 'blurp') { textOv[c.pos] = { text: c.text, t0: now, bubble: true }; return; }
       if (c.type === 'dir') { applyDir(c); return; }
@@ -1742,8 +1745,10 @@
       if (c.type === 'music') { if (scoreFollowing()) { if (c.mood === 'off' || c.mood === 'stop') Score.stop(); else { Score.setMood(c.mood); if (!Score.isOn()) Score.start(c.mood); } } return; }
       if (c.type === 'theme') { if (scoreFollowing()) Score.setMotif(motifFromName(c.name)); return; }
       if (c.type === 'section') { sectionActive = true; sectionStart = performance.now(); sectionCfg = { title: c.title, sub: c.sub, idx: c.secIdx || 1, total: c.secTotal || 1, style: c.style || ($('transStyle') ? $('transStyle').value : 'wipe') }; pauseUntil = now + SECTION_DUR; if (typeof Score !== 'undefined' && scoreFollowing()) Score.bump(); return; }
-      mediaOv = { kind: c.type, name: c.asset, img: mediaAssets[c.asset] || null, label: c.label || c.asset, t0: now };
-      if (isVideo(mediaOv.img)) { try { mediaOv.img.currentTime = 0; mediaOv.img.play(); } catch (_) {} }   // animations / screen-recordings play on cue
+      mediaHold = (mediaOv && mediaOv.kind === 'full') ? mediaOv : null;   // keep showing it until the new one has a frame
+      loopFrame.width = 0;                                                   // a new clip starts with no saved loop frame
+      mediaOv = { kind: c.type, name: c.asset, from: c.from || 0, img: mediaAssets[c.asset] || null, label: c.label || c.asset, t0: now };
+      if (isVideo(mediaOv.img)) { try { mediaOv.img.currentTime = mediaOv.from; mediaOv.img.play(); } catch (_) {} }   // animations / screen-recordings play on cue
     }
     function applyDir(d) {
       const now = performance.now() / 1000;
@@ -1970,7 +1975,7 @@
     const mediaDims = (el) => el ? [el.videoWidth || el.naturalWidth || el.width || 0, el.videoHeight || el.naturalHeight || el.height || 0] : [0, 0];
     function drawScriptMedia() {
       if (!mediaOv) return;
-      if (!mediaOv.img && mediaAssets[mediaOv.name]) { mediaOv.img = mediaAssets[mediaOv.name]; if (isVideo(mediaOv.img)) { try { mediaOv.img.currentTime = 0; mediaOv.img.play(); } catch (_) {} } }
+      if (!mediaOv.img && mediaAssets[mediaOv.name]) { mediaOv.img = mediaAssets[mediaOv.name]; if (isVideo(mediaOv.img)) { try { mediaOv.img.currentTime = mediaOv.from || 0; mediaOv.img.play(); } catch (_) {} } }
       const W = cv.width, H = cv.height, now = performance.now() / 1000, fade = Math.max(0, Math.min(1, (now - mediaOv.t0) / 0.35));
       const el = mediaOv.img, ready = mediaReady(el), d = mediaDims(el), vw = d[0], vh = d[1];
       if (mediaOv.kind === 'left' || mediaOv.kind === 'right') {
@@ -1986,10 +1991,27 @@
         ctx.restore(); return;
       }
       if (mediaOv.kind === 'full') {
-        ctx.save(); ctx.globalAlpha = fade;
-        if (ready && vw) { const s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s; ctx.drawImage(el, (W - dw) / 2, (H - dh) / 2, dw, dh); }
-        else { ctx.fillStyle = '#0a0f17'; ctx.fillRect(0, 0, W, H); placeholderBox(W * 0.18, H * 0.30, W * 0.64, H * 0.40, mediaOv.label, 'FULL FRAME'); }
-        ctx.restore();
+        const cover = (m) => { const [mw, mh] = mediaDims(m), s = Math.max(W / mw, H / mh); ctx.drawImage(m, (W - mw * s) / 2, (H - mh * s) / 2, mw * s, mh * s); };
+        // Clip to clip: hold the previous clip's frame underneath while the new one seeks and fades in, so a
+        // cut never flashes the placeholder. The placeholder is only for a file that was never loaded.
+        // Once the new clip has shown a frame, the hold is done: a looping clip just keeps its own last frame.
+        const showable = vw && (mediaOv.shown || (ready && !(isVideo(el) && el.seeking)));
+        if (showable && !mediaOv.shown) mediaOv.shown = true;
+        const hold = !mediaOv.shown || fade < 1 ? (mediaHold && mediaHold.img !== el && mediaReady(mediaHold.img) ? mediaHold.img : null) : null;
+        if (hold) cover(hold);
+        if (!mediaOv.shown && el) mediaOv.t0 = now;         // the fade-in starts when the new clip has its first frame
+        if (showable) {
+          // A looping clip has no frame for a moment while it rewinds. Keep a copy of its last frames near the
+          // end and show that copy through the rewind, so a loop never flashes black.
+          const vid = isVideo(el), rewinding = vid && (el.readyState < 2 || el.seeking);
+          if (rewinding && loopFrame.width) cover(loopFrame);
+          else {
+            ctx.save(); ctx.globalAlpha = fade; cover(el); ctx.restore();
+            if (vid && el.loop && el.duration && el.currentTime > el.duration - 0.4) { loopFrame.width = vw; loopFrame.height = vh; loopFrame.getContext('2d').drawImage(el, 0, 0); }
+          }
+        }
+        else if (!el) { ctx.save(); ctx.globalAlpha = fade; ctx.fillStyle = '#0a0f17'; ctx.fillRect(0, 0, W, H); placeholderBox(W * 0.18, H * 0.30, W * 0.64, H * 0.40, mediaOv.label, 'FULL FRAME'); ctx.restore(); }
+        else if (!hold) { ctx.save(); ctx.globalAlpha = fade; ctx.fillStyle = '#0a0f17'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
       } else {
         // Wide video: a small picture top right. Tall (phone) video: nearly full width across the top, above the
         // face, big enough to read on a phone (at 30% of a tall frame it would be a postage stamp).
